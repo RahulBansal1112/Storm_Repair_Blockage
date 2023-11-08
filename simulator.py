@@ -8,13 +8,14 @@ class Simulator:
         TODO
     """
 
-    # agent_pos = []
-    # agent_dest = []
-    # agent_progress = []
-    # num_agents = 0
-    # known: Graph
-    # time = 0
-    # visibility = []
+    # you can initialize these if you want
+    agent_pos = [] # current agent positions
+    agent_dest = [] # next node each agent is traveling towards
+    agent_progress = [] # how far along the path the agents are
+    num_agents = 0
+    known: Graph
+    time = 0
+    visibility = []
 
     def __init__(self, known: Graph, unknown: Graph, visibility: List[List[Tuple]], num_agents: int, targets: List[int]):
         pass
@@ -26,7 +27,7 @@ class Simulator:
         while(len(self.targets) > 0):
             self._update_positions()
             self._update_known_graph()
-            # self._get_new_dest()
+            # self._get_new_dest() # TODO
         
 
     def _update_positions(self) -> int:
