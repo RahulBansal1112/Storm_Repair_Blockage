@@ -16,12 +16,24 @@ class Simulator:
     known: Graph
     time = 0
     visibility = []
+    targets = [] #list of targets agents have to repair
 
     def __init__(self, known: Graph, unknown: Graph, visibility: List[List[Tuple]], num_agents: int, targets: List[int]):
-        pass
+        self.known = known
+        self.visibility = visibility
+        self.num_agents = num_agents
+        self.targets = targets
+
 
     def start_sim(self, algorithm: str, start_nodes: List[int]):
-        pass
+        if(algorithm != "anakin" or algorithm != "R&R"):
+            raise Exception("Selected algorithm is not valid")
+
+        if(algorithm == "anakin"):
+            #this is where we run anakin's algorithm with the graph, targets, and agents we have
+        elif(algorithm == "R&R"):
+            #this is where we run our algorithm when we make it
+
 
     def run_simulation(self):
         while(len(self.targets) > 0):
