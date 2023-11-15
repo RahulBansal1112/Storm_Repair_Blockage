@@ -16,9 +16,10 @@ small_graph_unknown_dict: graph_dict = {
    (7, 6, 7.0), (6, 7, 2.0), (3, 0, 2.0), (0, 3, 14.0), (3, 4, 11.0), (4, 5, 2.0), (4, 1, 9.0), (7, 4, 7.0)],
    "node_weight": [10, 13, 5, 7, 11, 21, 6, 16, 21]
 }
+small_graph_unknown = Graph.from_dict(small_graph_unknown_dict)
 
 
-visibility = [[(0,1),(1,0),(0,3),(3,0)],
+small_graph_visibility = [[(0,1),(1,0),(0,3),(3,0)],
                [(1,0),(0,1),(1,2),(2,1),(4,1)],
                [(2,1),(1,2),(2,5),(5,2)],
                [(3,0),(0,3),(3,6),(6,3),(3,4)],
@@ -28,5 +29,4 @@ visibility = [[(0,1),(1,0),(0,3),(3,0)],
                [(6,7),(7,6),(7,4),(7,8),(8,7)],
                [(7,8),(8,7),(5,8),(8,5)]]
 
-
-small_graph_unknown = Graph.from_dict(small_graph_unknown_dict)
+small_graph_targets = [2, 5, 6, 7]

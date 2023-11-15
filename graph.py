@@ -61,7 +61,7 @@ class Graph:
         self.num_nodes = n
         self.adjacen_list: list[list[int]] = [[] for _ in range(n)]
         self.edge_weight: list[list[float]] = [
-            [-1.0 for _ in range(n)] for _ in range(n)
+            [1000000 for _ in range(n)] for _ in range(n)
         ]
         self.node_weight: list[int] = [0 for _ in range(n)]
 
@@ -236,10 +236,10 @@ class Graph:
 
         # need to add slot for new node to edge weight matrix
         for weight_list in self.edge_weight:
-            weight_list.append(-1.0)
+            weight_list.append(1000000)
 
         # add new row to edge weight matrix
-        self.edge_weight.append([-1.0 for _ in range(self.num_nodes)])
+        self.edge_weight.append([1000000 for _ in range(self.num_nodes)])
 
     def add_edge(self, start: int, end: int, weight: float = 0.0) -> None:
         """
