@@ -313,7 +313,7 @@ def wlp(g: Graph, path: list[int]) -> float:
     return sum(g.node_weight[path[i]] * path_len[i] for i in range(len(path)))
 
 
-def brute_force_mwlp(g: Graph, start: Optional[list[int]] = None) -> list[int]:
+def brute_force_mwlp(g: Graph, start: Optional  [list[int]] = None) -> list[int]:
     """
     Calculate minumum weighted latency
     Iterates over all possible paths and solves in brute force manner

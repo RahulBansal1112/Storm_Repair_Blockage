@@ -1,5 +1,6 @@
 from graph import Graph
 from typing import List, Tuple, Callable, Set
+from algos import floyd_warshall
 
 class Simulator:
     """Simulates multiple agents traversing a graph with multiple target
@@ -26,6 +27,7 @@ class Simulator:
         self.visibility = visibility
         self.num_agents = num_agents
         self.targets = set(targets)
+        
 
     # algorithm: function(known graph: Graph, current agent positions: List[int])
     def start_sim(self, algorithm: str, start_nodes: List[int]):
@@ -51,7 +53,20 @@ class Simulator:
     def run_simulation(self):
         print("curr pos:", end=" ")
         print(self.agent_pos)
+        
         while(len(self.targets) > 0):
+            shortest_known_paths = floyd_warshall(known)
+            small_complete_known_graph: graph_dict = {
+                "num_nodes": known.num_nodes,
+                "edges": [],
+                "node_weight": known.node_weight
+            }
+            for start_node in range (small_complete_known_graph.length):
+                for end_node in range (start_node.length):
+                    small_complete_known_graph.edges += [start_node, end_node, small_complete_known_graph[start_node][end_node]]
+            
+
+
             self._update_positions()
             self._update_known_graph()
             self._get_new_dest()
@@ -80,5 +95,5 @@ class Simulator:
                     self.known.set_edge_weight(edge[0], edge[1], self.unknown.edge_weight[edge[0]][edge[1]]) # WILL PROBABLY NEED TO DELETE EDGE
 
 
-
+f
     
