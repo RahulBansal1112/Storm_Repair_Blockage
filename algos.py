@@ -8,6 +8,7 @@ from typing import Callable, Deque, Optional
 
 import numpy as np
 from more_itertools import set_partitions
+import sys
 
 from graph import Graph
 
@@ -199,6 +200,93 @@ def path_length(g: Graph, path: list[int]) -> float:
     """
 
     return length_along_path(g, path)[-1]
+
+def minDistanceVertex(dist: list[float], visited: list[int]) -> int:
+    """
+    Used in Dijkstra's algorithm for shortest path from a single source
+    Calculates the vertex with the minimum edge weight that hasn't been visited
+
+    Parameters
+    ----------
+    dist: list[float]
+        distances to get a vertex
+    visited: list[int]
+        set of visited vertices
+
+    Returns
+    -------
+    int
+        index of vertex with minimum distance
+    """
+
+    min_dist = sys.maxsize
+    min_index = -1
+
+    for u in range(len(dist)):
+        if dist[u] < min_dist and visited[u] == False:
+            min_index = u
+            min_dist = dist[u]
+    return min_index
+
+def dijkstra(g: Graph, src: int) -> list[int]:
+    """
+    Returns the path of the shortest path from a single source to every other vertex
+
+    Parameters
+    ----------
+    g: Graph
+        Input graph
+    src: int
+        index of source vertex
+
+    Returns
+    -------
+    list[int]
+        path of the shortest path from src (list[x] returns the parent of vertex x)
+    """
+
+    dist = [sys.maxsize] * g.num_nodes
+    dist[src] = 0
+    visited = [False] * g.num_nodes
+    prev_vertex = [-1] * g.num_nodes
+
+    for _ in range(g.num_nodes):
+        node = minDistanceVertex(dist, visited)
+        visited[node] = True
+
+        for i in range(g.num_nodes):
+            if i in g.adjacen_list[node] and visited[i] == False and dist[node] + g.edge_weight[node][i] < dist[i]:
+                dist[i] = dist[node] + g.edge_weight[node][i]
+                prev_vertex[i] = node
+    return prev_vertex
+    
+def shortest_path(g: Graph, src: int, dest: int) -> list[int]:
+    """
+    Construct the shortest path from a source vertex to a destination vertex using Dijkstra's algorithm
+
+    Parameters
+    ----------
+    g: Graph
+        Input graph
+    src: int
+        index of the source vertex
+    dest: int
+        index of destination vertex
+
+    Returns
+    -------
+    list[int]
+        path of the shortest path from src to dest
+    """
+
+    prev_vertices = dijkstra(g, src)
+    current_vertex = dest
+    path = [dest]
+    while current_vertex != src:
+        path.insert(0, prev_vertices[current_vertex])
+        current_vertex = path[0]
+    
+    return path
 
 
 def floyd_warshall(g: Graph) -> list[list[float]]:
