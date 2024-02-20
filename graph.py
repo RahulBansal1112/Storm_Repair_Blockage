@@ -781,3 +781,50 @@ class Graph:
             )
 
         return to_print
+    
+    def delete_edge(self, start: int, end: int):
+        """
+        deletes given edge from the graph
+
+         Parameters
+        ----------
+        g: Graph
+            Input graph
+
+        edge: 
+            Edge to delete
+
+        """
+         # ensure nodes exist
+        if start >= self.num_nodes or start < 0:
+            raise ValueError(
+                f"Starting node {start} is out of range [0, {self.num_nodes - 1}]"
+            )
+        if end >= self.num_nodes or end < 0:
+            raise ValueError(
+                f"Ending node {end} is out of range [0, {self.num_nodes - 1}]"
+            )
+
+        # ensure edge exists
+        if end in self.adjacen_list[start]:
+            self.adjacen_list[start].remove(end)
+            self.edge_weight[start][end] = 100
+
+        
+    
+    def contains_edge(self, start: int, end: int) -> bool:
+        # ensure nodes exist
+        if start >= self.num_nodes or start < 0:
+            raise ValueError(
+                f"Starting node {start} is out of range [0, {self.num_nodes - 1}]"
+            )
+        if end >= self.num_nodes or end < 0:
+            raise ValueError(
+                f"Ending node {end} is out of range [0, {self.num_nodes - 1}]"
+            )
+
+        # ensure edge exists
+        if end not in self.adjacen_list[start]:
+            return False
+        else:
+            return True
