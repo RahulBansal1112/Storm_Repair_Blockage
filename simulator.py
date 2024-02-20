@@ -1,4 +1,4 @@
-from graph import Graph
+from graph import Graph, graph_dict
 from typing import List, Tuple, Callable, Set
 from algos import floyd_warshall
 
@@ -55,15 +55,15 @@ class Simulator:
         print(self.agent_pos)
         
         while(len(self.targets) > 0):
-            shortest_known_paths = floyd_warshall(known)
+            shortest_known_paths = floyd_warshall(self.known)
             small_complete_known_graph: graph_dict = {
-                "num_nodes": known.num_nodes,
+                "num_nodes": self.known.num_nodes,
                 "edges": [],
-                "node_weight": known.node_weight
+                "node_weight": self.known.node_weight
             }
-            for start_node in range (small_complete_known_graph.length):
-                for end_node in range (start_node.length):
-                    small_complete_known_graph.edges += [start_node, end_node, small_complete_known_graph[start_node][end_node]]
+            for start_node in range (small_complete_known_graph["num_nodes"]):
+                for end_node in range (start_node):
+                    small_complete_known_graph["edges"] += [start_node, end_node, small_complete_known_graph[start_node][end_node]]
             
 
 
@@ -95,5 +95,5 @@ class Simulator:
                     self.known.set_edge_weight(edge[0], edge[1], self.unknown.edge_weight[edge[0]][edge[1]]) # WILL PROBABLY NEED TO DELETE EDGE
 
 
-f
+
     

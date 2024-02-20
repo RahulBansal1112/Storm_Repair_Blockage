@@ -33,6 +33,7 @@ class SingleAgentSimulator:
         self.visibility = visibility
         self.num_agents = num_agents
         self.targets = set(targets)
+        self.agent_pos = [0] * num_agents
         
 
     # algorithm: function(known graph: Graph, current agent positions: List[int])
@@ -51,7 +52,7 @@ class SingleAgentSimulator:
         #     pass
         self._get_new_dest()
         self.run_anakin_simulation()
-        self.run_simu
+        self.run_simu()
 
     def _get_new_dest(self):
         self.agent_path[0] = algos.brute_force_mwlp(self.known, self.agent_pos[0]) 
@@ -218,9 +219,11 @@ class SingleAgentSimulator:
         
     
     def _update_known_graph(self) -> None:
-        for edge in small_graph_visibility[self.agent_pos]:
+        for edge in small_graph_visibility[self.agent_pos[0]]:
             self.visibility += edge
         for edge in self.visibility:
+            print("edge 0:")
+            print(edge)
             if (not self.unknown.contains_edge(edge[0], edge[1])):
                 graph.delete_edge(self.known, edge[0], edge[1])
                 self.broken_edges += edge
