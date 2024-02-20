@@ -20,11 +20,12 @@ class SingleAgentSimulator:
     unknown = small_graph_unknown
     time = 0
     visibility = []
+    discovered_edges = []
     broken_edges = []
     targets: Set[int] #list of targets agents have to repair
     algorithm: Callable[[graph.Graph, List[int]], List[int]]
-    discovered = 0
-    broken = 0
+    discovered_count = 0
+    broken_count = 0
     cd = 1
 
     def __init__(self, known: graph.Graph, unknown: graph.Graph, visibility: List[List[Tuple]], num_agents: int, targets: List[int]):
@@ -129,7 +130,7 @@ class SingleAgentSimulator:
 
 
         #init cd
-            cd = self.broken/self.discovered
+            self.cd = self.broken_count/self.discovered_count
 
         #init vantage node and target node
             vantage_node = 0 
@@ -219,28 +220,43 @@ class SingleAgentSimulator:
         
     
     def _update_known_graph(self) -> None:
-        for edge in small_graph_visibility[self.agent_pos[0]]:
-            self.visibility += edge
-        for edge in self.visibility:
+        
+        #add visible edges from visibility to our list of discovered edges
+        for edges in self.visibility[self.agent_pos[0]]:
+            for edge in edges:
+                self.discovered_edges += edge
+        
+        #if the edge does not exist in our unknown graph delete it from known graph and add edge to list of broken edges
+        for edge in self.discovered_edges:
             print("edge 0:")
             print(edge)
             if (not self.unknown.contains_edge(edge[0], edge[1])):
                 graph.delete_edge(self.known, edge[0], edge[1])
                 self.broken_edges += edge
+
+        #gets rid of all repeat edges in broken and discovered edges list
         self.broken_edges = list(dict.fromkeys(self.broken_edges))
-        self.visibility = list(dict.fromkeys(self.visibility))
+        self.discovered_edges = list(dict.fromkeys(self.discovered_edges))
+
+        #adjusts the value of the amount of broken and discovered edges
         self.broken = len(self.broken_edges)
-        self.discovered = len(self.visibility)
+        self.discovered = len(self.discovered_edges)
 
     
     def _vantage_incentive(self, vantage_node: int) -> int:
-        potential_edges = len(small_graph_visibility[vantage_node])
-        for visible_edge in self.visibility: 
+
+        #sets the amount of potential edges to the amount of visible edges from the given vantage node
+        potential_edges = len(self.visibility[vantage_node])
+
+        #if the edge has already been discovered then we reduce the amount of potential edges
+        for visible_edge in self.discovered_edges: 
             for potential_edge in self.visibility:
                 if visible_edge == potential_edge:
                     potential_edges -= 1
+
         vantage_path = algos.shortest_path(self.known, self.agent_pos[0], vantage_node)
 
+        #returns the value of potental edges to discover/path length based on known graph
         return potential_edges/algos.path_length(self.known, vantage_path)
         
 
