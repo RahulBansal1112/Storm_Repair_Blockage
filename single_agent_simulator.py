@@ -20,8 +20,8 @@ class SingleAgentSimulator:
     unknown = small_graph_unknown
     time = 0
     visibility = []
-    discovered_edges = []
-    broken_edges = []
+    discovered_edges = [tuple()]
+    broken_edges = [tuple()]
     targets: Set[int] #list of targets agents have to repair
     algorithm: Callable[[graph.Graph, List[int]], List[int]]
     discovered_count = 0
@@ -223,12 +223,13 @@ class SingleAgentSimulator:
         
         #add visible edges from visibility to our list of discovered edges
         for edges in self.visibility[self.agent_pos[0]]:
-            for edge in edges:
-                self.discovered_edges += edge
+            print("edge 0:")
+            print(edges)
+            self.discovered_edges.append(edges)
         
         #if the edge does not exist in our unknown graph delete it from known graph and add edge to list of broken edges
         for edge in self.discovered_edges:
-            print("edge 0:")
+            print("edge 1:")
             print(edge)
             if (not self.unknown.contains_edge(edge[0], edge[1])):
                 graph.delete_edge(self.known, edge[0], edge[1])
