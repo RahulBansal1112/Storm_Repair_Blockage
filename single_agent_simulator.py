@@ -1,4 +1,5 @@
 import graph
+from graph import Graph
 from graphs_test import small_graph_known, small_graph_unknown, small_graph_visibility
 from typing import List, Tuple, Callable, Set
 import algos
@@ -20,8 +21,8 @@ class SingleAgentSimulator:
     unknown = small_graph_unknown
     time = 0
     visibility = []
-    discovered_edges = [tuple()]
-    broken_edges = [tuple()]
+    discovered_edges = []
+    broken_edges = []
     targets: Set[int] #list of targets agents have to repair
     algorithm: Callable[[graph.Graph, List[int]], List[int]]
     discovered_count = 0
@@ -35,6 +36,8 @@ class SingleAgentSimulator:
         self.num_agents = num_agents
         self.targets = set(targets)
         self.agent_pos = [0] * num_agents
+        self.agent_dest = [0] * num_agents
+        self.agent_progress = [0] * num_agents
         
 
     # algorithm: function(known graph: Graph, current agent positions: List[int])
@@ -72,14 +75,20 @@ class SingleAgentSimulator:
             #create an adjacency list of nodes for our incomplete known graph
             shortest_known_paths = algos.floyd_warshall(self.known)
             #create graph that is a complete version of known graph
-            small_complete_known_graph: graph.graph_dict = {
+            small_complete_known_graph_dict: graph.graph_dict = {
                 "num_nodes": self.known.num_nodes,
                 "edges": [],
                 "node_weight": self.known.node_weight
             }
-            for start_node in range (len(shortest_known_paths)):
-                for end_node in range (len(start_node)):
-                    small_complete_known_graph.add_edge(start_node, end_node, small_complete_known_graph[start_node][end_node])
+            
+            small_complete_known_graph = Graph.from_dict(small_complete_known_graph_dict)
+            for start_node in range (self.known.num_nodes):
+                for end_node in range (self.known.num_nodes):
+                    small_complete_known_graph.add_edge(start_node, end_node, shortest_known_paths[start_node][end_node])
+
+            # for start_node in range (len(shortest_known_paths)):
+            #     for end_node in range (start_node):
+            #         small_complete_known_graph.add_edge(start_node, end_node, small_complete_known_graph.edge_weight[start_node][end_node])
                     
             #create new path of agent based on complete graph
             tempagentpath = algos.brute_force_mwlp(small_complete_known_graph, [self.agent_pos[0]])
@@ -123,8 +132,8 @@ class SingleAgentSimulator:
                 "node_weight": self.known.node_weight
             }
             for start_node in range (len(shortest_known_paths)):
-                for end_node in range (len(start_node)):
-                    small_complete_known_graph.add_edge(start_node, end_node, small_complete_known_graph[start_node][end_node])
+                for end_node in range (start_node):
+                    small_complete_known_graph.add_edge(start_node, end_node, shortest_known_paths[start_node][end_node])
         #complete known graph will be used to access shortest path between nodes, however when traversing, we will use the incomplete graph
             target_path = algos.brute_force_mwlp(small_complete_known_graph, [self.agent_pos[0]])
 
@@ -228,11 +237,13 @@ class SingleAgentSimulator:
             self.discovered_edges.append(edges)
         
         #if the edge does not exist in our unknown graph delete it from known graph and add edge to list of broken edges
+        print("discovered edges:")
+        print(self.discovered_edges)
         for edge in self.discovered_edges:
             print("edge 1:")
             print(edge)
             if (not self.unknown.contains_edge(edge[0], edge[1])):
-                graph.delete_edge(self.known, edge[0], edge[1])
+                self.known.delete_edge(edge[0], edge[1])
                 self.broken_edges += edge
 
         #gets rid of all repeat edges in broken and discovered edges list
