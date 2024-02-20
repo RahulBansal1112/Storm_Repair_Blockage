@@ -808,7 +808,7 @@ class Graph:
         # ensure edge exists
         if end in self.adjacen_list[start]:
             self.adjacen_list[start].remove(end)
-            self.edge_weight[start][end] = 100
+            self.edge_weight[start][end] = None
 
         
     

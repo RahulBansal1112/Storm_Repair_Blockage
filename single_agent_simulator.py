@@ -114,6 +114,7 @@ class SingleAgentSimulator:
             #remove target from target list if agent has visited
             print(len(self.targets))
             if self.agent_pos[0] in self.targets:
+                self.known.set_node_weight(self.agent_pos[0], 0)
                 self.targets.remove(self.agent_pos[0])
             
     
@@ -162,6 +163,7 @@ class SingleAgentSimulator:
             self._update_positions()
 
             if self.agent_pos[0] in self.targets:
+                self.known.set_node_weight(self.agent_pos[0], 0)
                 self.targets.remove(self.agent_pos[0])
 
         
@@ -192,14 +194,23 @@ class SingleAgentSimulator:
 
         """
         for node in range(len(path_to_vantage) - 1):
+            if (path_to_vantage[node], path_to_vantage[node + 1]) in self.discovered_edges and (path_to_vantage[node], path_to_vantage[node + 1]) not in self.broken_edges:
+                print("v exists")
+                continue
             temp_graph = self.known
             graph.delete_edge(temp_graph, path_to_vantage[node], path_to_vantage[node + 1])
             vantage_path_cost_without_edge += algos.path_length(temp_graph, algos.shortest_path(temp_graph, self.agent_pos[0], vantage_node))
         for node in range(len(path_to_target) - 1):
+            if (path_to_target[node], path_to_target[node + 1]) in self.discovered_edges and (path_to_target[node], path_to_target[node + 1]) not in self.broken_edges:
+                print("t exists")
+                continue
             temp_graph = self.known
             graph.delete_edge(temp_graph, path_to_target[node], path_to_target[node + 1])
             target_path_cost_without_edge += algos.path_length(temp_graph, algos.shortest_path(temp_graph, self.agent_pos[0], vantage_node))
         for node in range(len(vantage_to_target_path) - 1):
+            if (vantage_to_target_path[node], vantage_to_target_path[node + 1]) in self.discovered_edges and (vantage_to_target_path[node], vantage_to_target_path[node + 1]) not in self.broken_edges:
+                print("vt exists")
+                continue
             temp_graph = self.known
             graph.delete_edge(temp_graph, vantage_to_target_path[node], vantage_to_target_path[node + 1])
             vantage_to_target_cost_without_edge += algos.path_length(temp_graph, algos.shortest_path(temp_graph, self.agent_pos[0], vantage_node))
@@ -242,6 +253,10 @@ class SingleAgentSimulator:
         print(self.visibility)
         print("targets:", end=' ')
         print(self.targets)
+        print("adjacency", end=' ')
+        print(self.known.adjacen_list)
+        print("node weights", end=' ')
+        print(self.known.node_weight)
         
         #if the edge does not exist in our unknown graph delete it from known graph and add edge to list of broken edges
         # print("discovered edges:")
@@ -266,10 +281,6 @@ class SingleAgentSimulator:
         potential_edges = len(self.visibility[vantage_node])
 
         #if the edge has already been discovered then we reduce the amount of potential edges
-        for visible_edge in self.discovered_edges: 
-            for potential_edge in self.visibility:
-                if visible_edge == potential_edge:
-                    potential_edges -= 1
 
         vantage_path = algos.shortest_path(self.known, self.agent_pos[0], vantage_node)
 
