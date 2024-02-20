@@ -64,11 +64,9 @@ class SingleAgentSimulator:
 
 
     def run_anakin_simulation(self):
-        print("curr pos:", end=" ")
-        print(self.agent_pos)
-        
         while(len(self.targets) > 0):
-
+            print("curr pos:", end=" ")
+            print(self.agent_pos)
             #take in account visibility and update graph known graph nodes
             self._update_known_graph()
 
@@ -104,6 +102,8 @@ class SingleAgentSimulator:
                 inbetweenpath += algos.shortest_path(self.known, tempagentpath[node], tempagentpath[node + 1])
                 inbetweenpath.pop() #pop so we dont have a repeat of nodes
             self.agent_path[0] = inbetweenpath
+            print("agent path:", end=" ")
+            print(self.agent_path[0])
             self.agent_dest[0] = self.agent_path[0][1]
            
            
@@ -112,6 +112,7 @@ class SingleAgentSimulator:
             self._update_positions()
 
             #remove target from target list if agent has visited
+            print(len(self.targets))
             if self.agent_pos[0] in self.targets:
                 self.targets.remove(self.agent_pos[0])
             
@@ -215,6 +216,7 @@ class SingleAgentSimulator:
 
     def _update_positions(self) -> int:
         
+        agents_at_node = []
         time_delta = min(self.known.edge_weight[self.agent_pos[agent]][self.agent_dest[agent]] - self.agent_progress[agent] for agent in range(self.num_agents))
         self.time += time_delta
         self.agent_progress = [progress + time_delta for progress in self.agent_progress]
@@ -223,7 +225,8 @@ class SingleAgentSimulator:
                 self.agent_pos[agent] = self.agent_dest[agent]
                 self.agent_dest[agent] = -1
                 self.agent_progress[agent] = 0
-        return time_delta
+                agents_at_node.append(agent)
+        return agents_at_node
     
     
         
@@ -232,16 +235,18 @@ class SingleAgentSimulator:
         
         #add visible edges from visibility to our list of discovered edges
         for edges in self.visibility[self.agent_pos[0]]:
-            print("edge 0:")
-            print(edges)
             self.discovered_edges.append(edges)
+        print("agent pos in update:", end=' ')
+        print(self.agent_pos[0])
+        self.visibility[self.agent_pos[0]] = []
+        print(self.visibility)
+        print("targets:", end=' ')
+        print(self.targets)
         
         #if the edge does not exist in our unknown graph delete it from known graph and add edge to list of broken edges
-        print("discovered edges:")
-        print(self.discovered_edges)
+        # print("discovered edges:")
+        # print(self.discovered_edges)
         for edge in self.discovered_edges:
-            print("edge 1:")
-            print(edge)
             if (not self.unknown.contains_edge(edge[0], edge[1])):
                 self.known.delete_edge(edge[0], edge[1])
                 self.broken_edges += edge
