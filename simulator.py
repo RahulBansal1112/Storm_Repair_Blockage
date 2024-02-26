@@ -70,8 +70,8 @@ class Simulator:
             self._update_positions()
             self._update_known_graph()
             self._get_new_dest()
-            print("curr pos:", end=" ")
-            print(self.agent_pos)
+            # print("curr pos:", end=" ")
+            # print(self.agent_pos)
         
 
     def _update_positions(self) -> int:

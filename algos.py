@@ -283,6 +283,9 @@ def shortest_path(g: Graph, src: int, dest: int) -> list[int]:
     current_vertex = dest
     path = [dest]
     while current_vertex != src:
+        if (prev_vertices[current_vertex] == -1):
+            # no path exists
+            return []
         path.insert(0, prev_vertices[current_vertex])
         current_vertex = path[0]
     

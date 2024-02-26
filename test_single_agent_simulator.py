@@ -18,7 +18,8 @@ def get_next_agent_pos(known: Graph, current_pos: List[int]):
 def main():
 
     sim = SingleAgentSimulator(graphs_test.small_graph_known, graphs_test.small_graph_unknown, graphs_test.small_graph_visibility, 1, graphs_test.small_graph_targets)
-    sim.run_anakin_simulation()
+    # sim.run_anakin_simulation()
+    sim.run_simu()
     print("total time taken:", end=" ")
     print(sim.time)
 
