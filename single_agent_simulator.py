@@ -17,8 +17,8 @@ class SingleAgentSimulator:
     agent_path = [[]]
     agent_progress = [] # how far along the path the agents are
     num_agents = 1
-    known = small_graph_known
-    unknown = small_graph_unknown
+    # known = small_graph_known
+    # unknown = small_graph_unknown
     time = 0
     visibility = []
     discovered_edges = []
@@ -38,6 +38,7 @@ class SingleAgentSimulator:
         self.agent_pos = [0] * num_agents
         self.agent_dest = [0] * num_agents
         self.agent_progress = [0] * num_agents
+        print(known.num_nodes)
         
 
     # algorithm: function(known graph: Graph, current agent positions: List[int])
@@ -69,7 +70,6 @@ class SingleAgentSimulator:
             print(self.agent_pos)
             #take in account visibility and update graph known graph nodes
             self._update_known_graph()
-
             #create an adjacency list of nodes for our incomplete known graph
             shortest_known_paths = algos.floyd_warshall(self.known)
             #create graph that is a complete version of known graph
@@ -102,8 +102,8 @@ class SingleAgentSimulator:
                 inbetweenpath += algos.shortest_path(self.known, tempagentpath[node], tempagentpath[node + 1])
                 inbetweenpath.pop() #pop so we dont have a repeat of nodes
             self.agent_path[0] = inbetweenpath
-            # print("agent path:", end=" ")
-            # print(self.agent_path[0])
+            print("agent path:", end=" ")
+            print(self.agent_path[0])
             self.agent_dest[0] = self.agent_path[0][1]
            
            
@@ -124,6 +124,8 @@ class SingleAgentSimulator:
         ## use anakins method to create initial path!!!!
          while(len(self.targets) > 0):
         #update known graph
+            print("agent pos: ", end=' ')
+            print(self.agent_pos[0])
             self._update_known_graph()
 
             #create complete graph from given info
@@ -143,6 +145,8 @@ class SingleAgentSimulator:
 
         #init cd
             self.cd = self.broken_count/self.discovered_count
+            # print("cd: ", end= ' ')
+            # print(self.cd)
 
         #init vantage node and target node
             # may use an incentive function in the future, but right now we're checking every node
@@ -153,7 +157,11 @@ class SingleAgentSimulator:
             #     if (self._vantage_incentive(node) > vantage_incentive):
             #         vantage_incentive = self._vantage_incentive(node)
             #         vantage_node = node
-            target_node = target_path[1]
+            for node in target_path:
+                if node in self.targets:
+                    target_node = node
+                    break
+            # target_node = target_path[1]
 
         #find path based on equation
             min_path_cost = float('inf')
@@ -184,13 +192,13 @@ class SingleAgentSimulator:
         # print(self.agent_pos[0])
         # print("vantage node: ", end=' ')
         # print(vantage_node)
-
-        # print("path to vantage", end=' ')
-        # print(path_to_vantage)
-        # print("path to target", end=' ')
-        # print(path_to_target)
-        # print("vantage to target", end=' ')
-        # print(vantage_to_target_path)
+        if (self.agent_pos[0] == 0 and vantage_node == 2):
+            print("path to vantage", end=' ')
+            print(path_to_vantage)
+            print("path to target", end=' ')
+            print(path_to_target)
+            print("vantage to target", end=' ')
+            print(vantage_to_target_path)
 
 
         #init path costs for 3 paths 
@@ -212,45 +220,63 @@ class SingleAgentSimulator:
 
         """
         for node in range(len(path_to_vantage) - 1):
-            if (path_to_vantage[node], path_to_vantage[node + 1]) in self.discovered_edges and (path_to_vantage[node], path_to_vantage[node + 1]) not in self.broken_edges:
-                # print("v exists")
-                pass
-            else:
-                break
+            # if (path_to_vantage[node], path_to_vantage[node + 1]) in self.discovered_edges and (path_to_vantage[node], path_to_vantage[node + 1]) not in self.broken_edges:
+            #     # print("v exists")
+            #     pass
+            # else:
+            #     break
             # temp_graph = self.known
+            if ((path_to_vantage[node], path_to_vantage[node + 1]) in self.discovered_edges):
+                continue
             deleted_edge_weight = self.known.edge_weight[path_to_vantage[node]][path_to_vantage[node + 1]]
-            self.known.delete_edge(path_to_vantage[node], path_to_vantage[node + 1])
 
+            self.known.delete_edge(path_to_vantage[node], path_to_vantage[node + 1])
             vantage_path_cost_without_edge += algos.path_length(self.known, algos.shortest_path(self.known, self.agent_pos[0], vantage_node))
             self.known.add_edge(path_to_vantage[node], path_to_vantage[node + 1], deleted_edge_weight)
 
         for node in range(len(path_to_target) - 1):
-            if (path_to_target[node], path_to_target[node + 1]) in self.discovered_edges and (path_to_target[node], path_to_target[node + 1]) not in self.broken_edges:
+            if (path_to_target[node], path_to_target[node + 1]) in self.discovered_edges:
                 # print("t exists")
-                pass
-            else:
-                break
+                continue
+            # else:
+            #     break
             # temp_graph = self.known
             deleted_edge_weight = self.known.edge_weight[path_to_target[node]][path_to_target[node + 1]]
             self.known.delete_edge(path_to_target[node], path_to_target[node + 1])
-            target_path_cost_without_edge += algos.path_length(self.known, algos.shortest_path(self.known, self.agent_pos[0], vantage_node))
+            target_path_cost_without_edge += algos.path_length(self.known, algos.shortest_path(self.known, self.agent_pos[0], target_node))
             self.known.add_edge(path_to_target[node], path_to_target[node + 1], deleted_edge_weight)
         for node in range(len(vantage_to_target_path) - 1):
-            if (vantage_to_target_path[node], vantage_to_target_path[node + 1]) in self.discovered_edges and (vantage_to_target_path[node], vantage_to_target_path[node + 1]) not in self.broken_edges:
+            if (vantage_to_target_path[node], vantage_to_target_path[node + 1]) in self.discovered_edges:
                 # print("vt exists")
-                pass
-            else:
-                break
+                continue
+            # else:
+            #     break
             # temp_graph = self.known
             deleted_edge_weight = self.known.edge_weight[vantage_to_target_path[node]][vantage_to_target_path[node + 1]]
             self.known.delete_edge(vantage_to_target_path[node], vantage_to_target_path[node + 1])
-            vantage_to_target_cost_without_edge += algos.path_length(self.known, algos.shortest_path(self.known, self.agent_pos[0], vantage_node))
-            self.known.add_edge(vantage_to_target_path[node], vantage_to_target_path[node + 1], deleted_edge_weight)
-        
-        vantage_cost = self.cd * (vantage_path_cost_without_edge - vantage_path_cost + vantage_to_target_cost_without_edge - vantage_to_target_path_cost) + vantage_path_cost + vantage_to_target_path_cost
-        target_cost = self.cd * (target_path_cost_without_edge - target_path_cost) + target_path_cost
+            if (vantage_to_target_path[node], vantage_to_target_path[node + 1]) not in self.visibility[vantage_node]:
+                vantage_to_target_cost_without_edge += algos.path_length(self.known, algos.shortest_path(self.known, vantage_node, target_node))
+                self.known.add_edge(vantage_to_target_path[node], vantage_to_target_path[node + 1], deleted_edge_weight)
+            else:
+                self.known.add_edge(vantage_to_target_path[node], vantage_to_target_path[node + 1], deleted_edge_weight)
+                vantage_to_target_cost_without_edge += self.known.edge_weight[vantage_to_target_path[node]][vantage_to_target_path[node + 1]]
+        if (self.agent_pos[0] == 0 and vantage_node == 2):
+            print(vantage_to_target_cost_without_edge)
+        vantage_cost = self.cd * (vantage_path_cost_without_edge + vantage_to_target_cost_without_edge) + vantage_path_cost + vantage_to_target_path_cost
+        target_cost = self.cd * (target_path_cost_without_edge) + target_path_cost
 
-        if (vantage_cost < target_cost):
+        if (self.agent_pos[0] == 0 and vantage_node == 2):
+            print("agent pos: ", end=' ')
+            print(self.agent_pos[0])
+            print("vantage node: ", end=' ')
+            print(vantage_node)
+            print("vantage_cost: ", end=' ')
+            print(vantage_cost)
+            print("target_cost: ", end=' ')
+            print(target_cost)
+            print()
+
+        if (vantage_cost <= target_cost):
             # print("go to vantage")
             return path_to_vantage + vantage_to_target_path, vantage_cost
         else:
@@ -300,6 +326,7 @@ class SingleAgentSimulator:
             if (not self.unknown.contains_edge(edge[0], edge[1])):
                 self.known.delete_edge(edge[0], edge[1])
                 self.broken_edges += edge
+                self.broken_count += 1
 
         #gets rid of all repeat edges in broken and discovered edges list
         self.broken_edges = list(dict.fromkeys(self.broken_edges))

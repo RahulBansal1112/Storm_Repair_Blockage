@@ -17,7 +17,9 @@ def get_next_agent_pos(known: Graph, current_pos: List[int]):
 
 def main():
 
-    sim = SingleAgentSimulator(graphs_test.small_graph_known, graphs_test.small_graph_unknown, graphs_test.small_graph_visibility, 1, graphs_test.small_graph_targets)
+    # sim = SingleAgentSimulator(graphs_test.small_graph_known, graphs_test.small_graph_unknown, graphs_test.small_graph_visibility, 1, graphs_test.small_graph_targets)
+    # sim = SingleAgentSimulator(graphs_test.single_vantage_graph_known, graphs_test.single_vantage_graph_unknown, graphs_test.single_vantage_graph_visibility, 1, graphs_test.single_vantage_graph_targets)
+    sim = SingleAgentSimulator(graphs_test.two_long_path_graph_known, graphs_test.two_long_path_graph_unknown, graphs_test.two_long_path_visibility, 1, graphs_test.two_long_path_targets)
     # sim.run_anakin_simulation()
     sim.run_simu()
     print("total time taken:", end=" ")
