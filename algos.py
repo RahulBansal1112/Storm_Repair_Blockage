@@ -78,6 +78,8 @@ def length_along_path(g: Graph, path: list[int]) -> list[float]:
     # Iterate through all nodes in path
     for i in range(1, len(path)):
         # Raise error if edge does not exist
+        if path[i] == path[i - 1]:
+            continue
         if path[i] not in g.adjacen_list[path[i - 1]]:
             raise ValueError(f"Edge {path[i - 1]} --> {path[i]} does not exist")
         length.append(length[-1] + g.edge_weight[path[i - 1]][path[i]])
@@ -1457,3 +1459,27 @@ def find_partition_with_heuristic(
             partition = [set(subset) for subset in improved]
 
     return partition
+
+def different_start_greedy_assignment(g: Graph, k: int, start: list[int]) -> list[list[int]]:
+
+    if Graph.is_complete(g) is False:
+        raise ValueError("Passed graph is not complete")
+
+    # The only valid nodes to visit are non-starting nodes
+    nodes: list[int] = list(range(0, g.num_nodes))
+    # Sort the nodes from heaviest to least heavy
+    nodes = sorted(nodes, key=lambda x: g.node_weight[x], reverse=True)
+    # All paths must start with the start node
+    paths: list[list[int]] = [[start[idx]] for idx in range(k)]
+
+    for node in nodes:
+        # if node does have a weight, skip it
+        if g.node_weight[node] == 0:
+            continue
+        # find agent with shortest path (i.e. the agent who will finish first)
+        agent: int = min(range(k), key=lambda x: path_length(g, paths[x]))
+        # append current node (heaviest unvisited) to agent (assuming the agent isn't already there)
+        if paths[agent][0] != node:
+            paths[agent].append(node)
+
+    return paths
