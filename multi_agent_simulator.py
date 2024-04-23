@@ -92,7 +92,7 @@ class MultiAgentSimulator:
             #         small_complete_known_graph.add_edge(start_node, end_node, small_complete_known_graph.edge_weight[start_node][end_node])
                     
             #create new path of agent based on complete graph
-            tempagentpath = algos.greedy(small_complete_known_graph, [self.agent_pos[0]])
+            # tempagentpath = algos.greedy(small_complete_known_graph, [self.agent_pos[0]])
             
             """
             this path does not take into account the in between steps to get from each node
@@ -100,14 +100,29 @@ class MultiAgentSimulator:
             we find the inbetween path which consists of all the individual steps between the nodes
             this becomes our agent path
             """
-            inbetweenpath = []
-            for node in range(len(tempagentpath) - 1):
-                inbetweenpath += algos.shortest_path(self.known, tempagentpath[node], tempagentpath[node + 1])
-                inbetweenpath.pop() #pop so we dont have a repeat of nodes
-            self.agent_path[0] = inbetweenpath
-            print("agent path:", end=" ")
-            print(self.agent_path[0])
-            self.agent_dest[0] = self.agent_path[0][1]
+            target_paths = algos.different_start_greedy_assignment(small_complete_known_graph, self.num_agents, self.agent_pos)
+            print(f"greedy: {target_paths}")
+            target_paths = algos.different_start_transfer_outliers_mwlp(small_complete_known_graph, target_paths, self.agent_pos, algos.greedy)
+            for agent, target_path in enumerate(target_paths):
+                target_path.remove(self.agent_pos[agent])
+            target_paths = [list(s) for s in target_paths]
+            for agent, target_path in enumerate(target_paths):
+                target_path.insert(0, self.agent_pos[agent])
+            print(f"transfers: {target_paths}")
+
+            for agent in range(self.num_agents):
+                inbetweenpath = []
+                if len(target_paths[agent]) < 2:
+                    target_paths[agent].append(list(self.targets)[0])
+                for node in range(len(target_paths[agent]) - 1):
+                    inbetweenpath += algos.shortest_path(self.known, target_paths[agent][node], target_paths[agent][node + 1])
+                    if node != len(target_paths[agent]) - 2:
+                        inbetweenpath.pop() #pop so we dont have a repeat of nodes
+                print(f"path for agent {agent}: {inbetweenpath}")
+                self.agent_path[agent] = inbetweenpath
+                # print("agent path:", end=" ")
+                # print(self.agent_path[0])
+                self.agent_dest[agent] = self.agent_path[agent][1]
            
            
             #update agent position
@@ -115,10 +130,11 @@ class MultiAgentSimulator:
             self._update_positions()
 
             #remove target from target list if agent has visited
-            print(self.targets)
-            if self.agent_pos[0] in self.targets:
-                self.known.set_node_weight(self.agent_pos[0], 0)
-                self.targets.remove(self.agent_pos[0])
+            # print(self.targets)
+            for agent in range(self.num_agents):
+                if self.agent_pos[agent] in self.targets:
+                    self.known.set_node_weight(self.agent_pos[agent], 0)
+                    self.targets.remove(self.agent_pos[agent])
             
     
         
@@ -143,6 +159,10 @@ class MultiAgentSimulator:
             #complete known graph will be used to access shortest path between nodes, however when traversing, we will use the incomplete graph
 
             target_paths = algos.different_start_greedy_assignment(small_complete_known_graph, self.num_agents, self.agent_pos)
+            # print(target_paths)
+            target_paths = algos.different_start_transfer_outliers_mwlp(small_complete_known_graph, target_paths, self.agent_pos, algos.greedy)
+            target_paths = [list(s) for s in target_paths]
+            print(target_paths)
 
             # NOTE: this is only the path from the agent's current position to its immediate next target
             for agent in range(self.num_agents):
@@ -153,8 +173,8 @@ class MultiAgentSimulator:
                     self.agent_path[agent] = algos.shortest_path(self.known, self.agent_pos[agent], self.known.num_nodes - 1)
 
             #init cd
-            print("cd: ", end = ' ')
-            print(self.cd)
+            # print("cd: ", end = ' ')
+            # print(self.cd)
             # self.cd = self.broken_count/self.discovered_count
             # print("cd: ", end= ' ')
             # print(self.cd)
@@ -169,6 +189,7 @@ class MultiAgentSimulator:
             #         vantage_incentive = self._vantage_incentive(node)
             #         vantage_node = node
             for agent_num, target_path in enumerate(target_paths):
+                print(f"agent: {agent_num}, path: {target_path}")
                 for node in target_path:
                     if node in self.targets:
                         target_node = node
@@ -227,7 +248,11 @@ class MultiAgentSimulator:
             deleted_edge_weight = self.known.edge_weight[path_to_vantage[node]][path_to_vantage[node + 1]]
 
             self.known.delete_edge(path_to_vantage[node], path_to_vantage[node + 1])
-            cost = algos.path_length(self.known, algos.shortest_path(self.known, self.agent_pos[agent_num], path_to_vantage[node])) + algos.path_length(self.known, algos.shortest_path(self.known, path_to_vantage[node], vantage_node))
+            cost = 0
+            to_node_path_len = algos.path_length(self.known, algos.shortest_path(self.known, self.agent_pos[agent_num], path_to_vantage[node]))
+            node_to_target_path_len = algos.path_length(self.known, algos.shortest_path(self.known, path_to_vantage[node], vantage_node))
+            if to_node_path_len != -1 and node_to_target_path_len != -1:
+                cost = to_node_path_len + node_to_target_path_len
 
             vantage_path_cost_without_edge += cost - vantage_path_cost
             self.known.add_edge(path_to_vantage[node], path_to_vantage[node + 1], deleted_edge_weight)
@@ -239,7 +264,11 @@ class MultiAgentSimulator:
 
             deleted_edge_weight = self.known.edge_weight[path_to_target[node]][path_to_target[node + 1]]
             self.known.delete_edge(path_to_target[node], path_to_target[node + 1])
-            cost = algos.path_length(self.known, algos.shortest_path(self.known, self.agent_pos[agent_num], path_to_target[node])) + algos.path_length(self.known, algos.shortest_path(self.known, path_to_target[node], target_node))
+            cost = 0
+            to_node_path_len = algos.path_length(self.known, algos.shortest_path(self.known, self.agent_pos[agent_num], path_to_target[node]))
+            node_to_target_path_len = algos.path_length(self.known, algos.shortest_path(self.known, path_to_target[node], target_node))
+            if to_node_path_len != -1 and node_to_target_path_len != -1:
+                cost = to_node_path_len + node_to_target_path_len
 
             target_path_cost_without_edge += cost - target_path_cost
             self.known.add_edge(path_to_target[node], path_to_target[node + 1], deleted_edge_weight)
@@ -251,10 +280,15 @@ class MultiAgentSimulator:
             deleted_edge_weight = self.known.edge_weight[vantage_to_target_path[node]][vantage_to_target_path[node + 1]]
             self.known.delete_edge(vantage_to_target_path[node], vantage_to_target_path[node + 1])
             if (vantage_to_target_path[node], vantage_to_target_path[node + 1]) not in self.visibility[vantage_node]:
-                vantage_to_target_cost_without_edge += algos.path_length(self.known, algos.shortest_path(self.known, vantage_node, vantage_to_target_path[node])) + algos.path_length(self.known, algos.shortest_path(self.known, vantage_to_target_path[node], target_node)) - vantage_to_target_path_cost
+                to_node_path_len = algos.path_length(self.known, algos.shortest_path(self.known, vantage_node, vantage_to_target_path[node]))
+                node_to_target_path_len = algos.path_length(self.known, algos.shortest_path(self.known, vantage_to_target_path[node], target_node))
+                if to_node_path_len != -1 and node_to_target_path_len != -1:
+                    vantage_to_target_cost_without_edge += to_node_path_len + node_to_target_path_len - vantage_to_target_path_cost
                 self.known.add_edge(vantage_to_target_path[node], vantage_to_target_path[node + 1], deleted_edge_weight)
             else:
-                vantage_to_target_cost_without_edge += algos.path_length(self.known, algos.shortest_path(self.known, vantage_node, target_node)) - vantage_to_target_path_cost
+                new_path_len = algos.path_length(self.known, algos.shortest_path(self.known, vantage_node, target_node))
+                if new_path_len != -1:
+                    vantage_to_target_cost_without_edge += new_path_len - vantage_to_target_path_cost
                 self.known.add_edge(vantage_to_target_path[node], vantage_to_target_path[node + 1], deleted_edge_weight)
                 # vantage_to_target_cost_without_edge += self.known.edge_weight[vantage_to_target_path[node]][vantage_to_target_path[node + 1]]
 
@@ -270,7 +304,9 @@ class MultiAgentSimulator:
                 if (path[node], path[node + 1]) not in self.discovered_edges and (path[node], path[node + 1]) in self.visibility[vantage_node]:
                     deleted_edge_weight = self.known.edge_weight[path[node]][path[node + 1]]
                     self.known.delete_edge(path[node], path[node + 1])
-                    other_agent_gain += algos.path_length(self.known, algos.shortest_path(self.known, self.agent_pos[agent], self.agent_dest[agent])) - path_len
+                    new_path_len = algos.path_length(self.known, algos.shortest_path(self.known, self.agent_pos[agent], self.agent_dest[agent]))
+                    if new_path_len != -1:
+                        other_agent_gain += new_path_len - path_len
                     self.known.add_edge(path[node], path[node + 1], deleted_edge_weight)
 
 

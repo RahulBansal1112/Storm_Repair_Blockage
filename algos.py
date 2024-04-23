@@ -81,7 +81,8 @@ def length_along_path(g: Graph, path: list[int]) -> list[float]:
         if path[i] == path[i - 1]:
             continue
         if path[i] not in g.adjacen_list[path[i - 1]]:
-            raise ValueError(f"Edge {path[i - 1]} --> {path[i]} does not exist")
+            return [-1]
+            # raise ValueError(f"Edge {path[i - 1]} --> {path[i]} does not exist")
         length.append(length[-1] + g.edge_weight[path[i - 1]][path[i]])
     return length
 
@@ -1315,7 +1316,7 @@ def transfer_outliers_mwlp(
 
     m: int = len(partition)
     for i in range(m):
-        for node in set(v for v in partition[i] if v != 0):
+        for node in set(v for v in partition[i] if g.node_weight[v] != 0):
             # determine if outlier
             sub_g, _, _ = Graph.subgraph(g, partition[i])
             remove_node: list[int] = [v for v in partition[i] if v != node]
@@ -1473,7 +1474,7 @@ def different_start_greedy_assignment(g: Graph, k: int, start: list[int]) -> lis
     paths: list[list[int]] = [[start[idx]] for idx in range(k)]
 
     for node in nodes:
-        # if node does have a weight, skip it
+        # if node does not have a weight, skip it
         if g.node_weight[node] == 0:
             continue
         # find agent with shortest path (i.e. the agent who will finish first)
@@ -1483,3 +1484,95 @@ def different_start_greedy_assignment(g: Graph, k: int, start: list[int]) -> lis
             paths[agent].append(node)
 
     return paths
+
+def different_start_transfer_outliers_mwlp(
+    g: Graph, part: list[set[int]], start: list[int], f: Callable[..., list[int]], alpha: float = 0.13
+) -> list[set[int]]:
+    """
+    Identifies outliers in each partition and moves them to a more ideal agent
+    Uses passed heuristic and alpha threshold to determine if a node needs to move
+
+    Parameters
+    ----------
+    g: Graph
+        Input graph
+        Assertions:
+            g must be a complete graph
+
+    part: list[set[int]]
+        Starting unordered assignment of nodes for each agent
+        Assertions:
+            must be an agent partition
+
+    start: list[int]
+        Starting (current) position for each agent
+
+    f: Callable[..., list[int]]
+        Passed heuristic
+
+    alpha: float
+        Threshold for detecting outliers
+        Default: 0.13
+        Assertions:
+            0 <= alpha <= 1
+
+    Returns
+    -------
+    list[set[int]]
+        Resulting unordered assignment of nodes after transferring outliers
+
+    """
+
+    if Graph.is_complete(g) is False:
+        raise ValueError("Passed graph is not complete")
+
+    # if Graph.is_agent_partition(g, part) is False:
+    #     raise ValueError("Passed partition is invalid")
+
+    if not 0 <= alpha <= 1:
+        raise ValueError("Passed alpha threshold is out of range")
+
+    # creating a deep copy to be safe
+    partition: list[set[int]] = [set(s) for s in part]
+
+    outliers: set[int] = set()
+    p_old: dict[int, int] = {}
+    p_new: dict[int, int] = {}
+
+    m: int = len(partition)
+    # print("partition: ", end='')
+    # print(partition)
+    for i in range(m):
+        for node in set(v for v in partition[i] if g.node_weight[v] != 0):
+            # determine if outlier
+            sub_g, _, orig_to_sub_node_map = Graph.subgraph(g, partition[i])
+            remove_node: list[int] = [v for v in partition[i] if v != node]
+            sub_g_without_node, _, orig_to_sub_node_map_without = Graph.subgraph(g, remove_node)
+            # print("mapping")
+            # print([orig_to_sub_node_map[start[i]]])
+            with_node: float = wlp(sub_g, f(sub_g, [orig_to_sub_node_map[start[i]]]))
+            without_node: float = wlp(sub_g_without_node, f(sub_g_without_node, [orig_to_sub_node_map_without[start[i]]]))
+            contribution: float = (with_node - without_node) / with_node
+            if contribution > alpha:
+                # find minimizer of this
+                destination: int = -1
+                min_total = float("inf")
+
+                for j in range(m):
+                    # Find where adding outlier node minimizes contribution
+                    sub_g_j, _, orig_to_sub_node_map_j = Graph.subgraph(g, partition[j] | {node})
+                    total: float = wlp(sub_g_j, f(sub_g_j, [orig_to_sub_node_map_j[start[j]]]))
+                    if total < min_total:
+                        destination = j
+                        min_total = total
+
+                if destination not in {-1, i}:
+                    outliers.add(node)
+                    p_old[node] = i
+                    p_new[node] = destination
+
+    for outlier in outliers:
+        partition[p_old[outlier]].remove(outlier)
+        partition[p_new[outlier]].add(outlier)
+
+    return partition

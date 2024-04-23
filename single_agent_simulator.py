@@ -103,7 +103,8 @@ class SingleAgentSimulator:
             inbetweenpath = []
             for node in range(len(tempagentpath) - 1):
                 inbetweenpath += algos.shortest_path(self.known, tempagentpath[node], tempagentpath[node + 1])
-                inbetweenpath.pop() #pop so we dont have a repeat of nodes
+                if node != len(tempagentpath) - 2:
+                    inbetweenpath.pop() #pop so we dont have a repeat of nodes
             self.agent_path[0] = inbetweenpath
             print("agent path:", end=" ")
             print(self.agent_path[0])
