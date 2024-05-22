@@ -43,99 +43,9 @@ class MultiAgentSimulator:
         self.agent_path = [[self.agent_pos[idx]] for idx in range(num_agents)]
         
 
-    # algorithm: function(known graph: Graph, current agent positions: List[int])
-    def start_sim(self, algorithm: str, start_nodes: List[int]):
-        self.algorithm = algorithm
-        # if(algorithm != "anakin" or algorithm != "R&R"):
-        #     raise Exception("Selected algorithm is not valid")
-        self.agent_pos = start_nodes
-        self.agent_progress = [0] * self.num_agents
-
-        # if(algorithm == "anakin"):
-        #     #this is where we run anakin's algorithm with the graph, targets, and agents we have
-        #     pass
-        # elif(algorithm == "R&R"):
-        #     #this is where we run our algorithm when we make it
-        #     pass
-        self._get_new_dest()
-        self.run_anakin_simulation()
-        # self.run_simu()
-
     def _get_new_dest(self):
         self.agent_path[0] = algos.brute_force_mwlp(self.known, self.agent_pos[0]) 
         self.agent_dest = self.algorithm(self.known, self.agent_pos)
-
-
-    def run_anakin_simulation(self):
-        while(len(self.targets) > 0):
-            print("curr pos:", end=" ")
-            print(self.agent_pos)
-            #take in account visibility and update graph known graph nodes
-            self._update_known_graph()
-            
-            #create an adjacency list of nodes for our incomplete known graph
-            shortest_known_paths = algos.floyd_warshall(self.known)
-            #create graph that is a complete version of known graph
-            small_complete_known_graph_dict: graph.graph_dict = {
-                "num_nodes": self.known.num_nodes,
-                "edges": [],
-                "node_weight": self.known.node_weight
-            }
-            
-            small_complete_known_graph = Graph.from_dict(small_complete_known_graph_dict)
-            for start_node in range (self.known.num_nodes):
-                for end_node in range (self.known.num_nodes):
-                    small_complete_known_graph.add_edge(start_node, end_node, shortest_known_paths[start_node][end_node])
-
-            # for start_node in range (len(shortest_known_paths)):
-            #     for end_node in range (start_node):
-            #         small_complete_known_graph.add_edge(start_node, end_node, small_complete_known_graph.edge_weight[start_node][end_node])
-                    
-            #create new path of agent based on complete graph
-            # tempagentpath = algos.greedy(small_complete_known_graph, [self.agent_pos[0]])
-            
-            """
-            this path does not take into account the in between steps to get from each node
-            (e.g. goes from New York to LA without stopping at Chicago)
-            we find the inbetween path which consists of all the individual steps between the nodes
-            this becomes our agent path
-            """
-            target_paths = algos.different_start_greedy_assignment(small_complete_known_graph, self.num_agents, self.agent_pos)
-            # print(f"greedy: {target_paths}")
-            target_paths = algos.different_start_transfer_outliers_mwlp(small_complete_known_graph, target_paths, self.agent_pos, algos.greedy)
-            for agent, target_path in enumerate(target_paths):
-                target_path.remove(self.agent_pos[agent])
-            target_paths = [list(s) for s in target_paths]
-            for agent, target_path in enumerate(target_paths):
-                target_path.insert(0, self.agent_pos[agent])
-            # print(f"transfers: {target_paths}")
-
-            for agent in range(self.num_agents):
-                inbetweenpath = []
-                if len(target_paths[agent]) < 2:
-                    target_paths[agent].append(list(self.targets)[0])
-                for node in range(len(target_paths[agent]) - 1):
-                    inbetweenpath += algos.shortest_path(self.known, target_paths[agent][node], target_paths[agent][node + 1])
-                    if node != len(target_paths[agent]) - 2:
-                        inbetweenpath.pop() #pop so we dont have a repeat of nodes
-                # print(f"path for agent {agent}: {inbetweenpath}")
-                self.agent_path[agent] = inbetweenpath
-                # print("agent path:", end=" ")
-                # print(self.agent_path[0])
-                self.agent_dest[agent] = self.agent_path[agent][1]
-           
-           
-            #update agent position
-            #update time taken
-            self._update_positions()
-
-            #remove target from target list if agent has visited
-            # print(self.targets)
-            for agent in range(self.num_agents):
-                if self.agent_pos[agent] in self.targets:
-                    self.known.set_node_weight(self.agent_pos[agent], 0)
-                    self.targets.remove(self.agent_pos[agent])
-            
     
         
     def run_simu(self):
