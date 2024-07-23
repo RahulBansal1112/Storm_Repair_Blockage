@@ -1174,7 +1174,7 @@ def transfers_and_swaps_mwlp(
                 size_max: float = max(size_i, size_j)
                 v_star: int = -1
                 for v in g_i:
-                    if v != 0:
+                    if g.node_weight[v] != 0:
                         new_i: set[int] = set(g_i)
                         new_i.remove(v)
                         new_j: set[int] = set(g_j)
@@ -1218,7 +1218,7 @@ def transfers_and_swaps_mwlp(
                 v_i_star, v_j_star = -1, -1
 
                 for (v, v_prime) in product(g_i, g_j):
-                    if v != 0 and v_prime != 0:
+                    if g.node_weight[v] != 0 and g.node_weight[v_prime] != 0:
                         # swap v and v_prime
                         new_i = set(g_i)
                         new_i.remove(v)
@@ -1381,8 +1381,8 @@ def evaluate_partition_heuristic(
     if Graph.is_complete(g) is False:
         raise ValueError("Passed graph is not complete")
 
-    if Graph.is_agent_partition(g, partition) is False:
-        raise ValueError("Passed partition is invalid")
+    # if Graph.is_agent_partition(g, partition) is False:
+    #     raise ValueError("Passed partition is invalid")
 
     curr_max = float("-inf")
     for subset in partition:
@@ -1543,15 +1543,15 @@ def different_start_transfer_outliers_mwlp(
     # print("partition: ", end='')
     # print(partition)
     for i in range(m):
-        for node in set(v for v in partition[i] if g.node_weight[v] != 0):
+        for node in set(v for v in partition[i]):
             # determine if outlier
-            sub_g, _, orig_to_sub_node_map = Graph.subgraph(g, partition[i])
+            sub_g, _, orig_to_sub_node_map = Graph.subgraph(g, partition[i].union(set([start[i]])))
             remove_node: list[int] = [v for v in partition[i] if v != node]
-            sub_g_without_node, _, orig_to_sub_node_map_without = Graph.subgraph(g, remove_node)
+            sub_g_without_node, _, orig_to_sub_node_map_without = Graph.subgraph(g, set(remove_node) | {start[i]})
             # print("mapping")
             # print([orig_to_sub_node_map[start[i]]])
-            with_node: float = wlp(sub_g, f(sub_g, [orig_to_sub_node_map[start[i]]]))
-            without_node: float = wlp(sub_g_without_node, f(sub_g_without_node, [orig_to_sub_node_map_without[start[i]]]))
+            with_node: float = wlp(sub_g, f(sub_g, 1, [orig_to_sub_node_map[start[i]]])[0])
+            without_node: float = wlp(sub_g_without_node, f(sub_g_without_node, 1, [orig_to_sub_node_map_without[start[i]]])[0])
             contribution: float = (with_node - without_node) / with_node
             if contribution > alpha:
                 # find minimizer of this
@@ -1560,8 +1560,8 @@ def different_start_transfer_outliers_mwlp(
 
                 for j in range(m):
                     # Find where adding outlier node minimizes contribution
-                    sub_g_j, _, orig_to_sub_node_map_j = Graph.subgraph(g, partition[j] | {node})
-                    total: float = wlp(sub_g_j, f(sub_g_j, [orig_to_sub_node_map_j[start[j]]]))
+                    sub_g_j, _, orig_to_sub_node_map_j = Graph.subgraph(g, partition[j] | {node} | {start[j]})
+                    total: float = wlp(sub_g_j, f(sub_g_j, 1, [orig_to_sub_node_map_j[start[j]]])[0])
                     if total < min_total:
                         destination = j
                         min_total = total
@@ -1576,3 +1576,357 @@ def different_start_transfer_outliers_mwlp(
         partition[p_new[outlier]].add(outlier)
 
     return partition
+
+
+def different_start_transfers_and_swaps_mwlp(
+    g: Graph, part: list[set[int]], start: list[int], f: Callable[..., list[int]]
+) -> list[set[int]]:
+    """
+    Transfers and swaps nodes from one agent to another based on the passed heuristic
+
+    Parameters
+    ----------
+    g: Graph
+        Input graph
+        Assertions:
+            g must be a complete graph
+
+    part: list[set[int]]
+        Starting unordered assignment of nodes for each agent
+        Assertions:
+            Must be an agent partition
+
+    f: Callable[..., list[int]]
+        Passed heuristic
+
+    Returns
+    -------
+    list[set[int]]
+        Resulting unordered assignment of nodes after transfer and swaps
+
+    """
+
+    if Graph.is_complete(g) is False:
+        raise ValueError("Passed graph is not complete")
+
+    # if Graph.is_agent_partition(g, part) is False:
+    #     raise ValueError("Passed partition is invalid")
+
+    # creating a deep copy to be safe
+    partition: list[set[int]] = [set(s) for s in part]
+
+    # This is a deterministic algorithm
+    # Thus if we get to a partition that we have seen before, we have hit a loop
+    # When this occurs we return the current partition since in pratice this current
+    #   was very close to the local minimum (somewhere in the loop)
+    # Convert sets to frozensets for hashability
+    # Convert lists to frozensets for the same reason
+    seen: set[frozenset[frozenset[int]]] = set()
+    no_repeats: bool = True
+
+    m: int = len(partition)
+    pairs: list[tuple[int, int]] = list(combinations(set(range(m)), 2))
+    # Use these arrays as "hashmaps" of indicator variables
+    # to see if a pair needs to be checked
+
+    # determine if partition i needs to be checked for transfer
+    check_transfers: list[bool] = [True] * m
+    # determine if partition i needs to be checked for swap
+    check_swaps: list[bool] = [True] * m
+    # determine if pair i, j needs to be checked for transfer
+    check_transfer_pairs: list[bool] = [True] * len(pairs)
+    # determine if pair i, j needs to be checked for swap
+    check_swap_pairs: list[bool] = [True] * len(pairs)
+    checks: int = (
+        check_transfers.count(True)
+        + check_swaps.count(True)
+        + check_transfer_pairs.count(True)
+        + check_swap_pairs.count(True)
+    )
+
+    # while there are partitions to be checked
+    while checks > 0 and no_repeats is True:
+        curr_partition: frozenset[frozenset[int]] = frozenset(
+            frozenset(s) for s in partition
+        )
+        if curr_partition in seen:
+            no_repeats = False
+        else:
+            seen.add(curr_partition)
+
+        for idx, (i, j) in enumerate(pairs):
+            # transfers
+            if check_transfer_pairs[idx] or check_transfers[i] or check_transfers[j]:
+                g_i, g_j = set(partition[i]), set(partition[j])
+
+                sub_i, _, orig_to_sub_i = Graph.subgraph(g, g_i.union(set([start[i]])))
+                sub_j, _, orig_to_sub_j = Graph.subgraph(g, g_j.union(set([start[j]])))
+
+                size_i: float = wlp(sub_i, f(sub_i, 1, [orig_to_sub_i[start[i]]])[0])
+                size_j: float = wlp(sub_j, f(sub_j, 1, [orig_to_sub_j[start[j]]])[0])
+
+                # we presume size_i => size_j
+                if size_i < size_j:
+                    g_i, g_j = g_j, g_i
+                    sub_i, _, orig_to_sub_i = Graph.subgraph(g, g_j.union(set([start[i]])))
+                    sub_j, _, orig_to_sub_j = Graph.subgraph(g, g_i.union(set([start[j]])))
+                    size_i, size_j = size_j, size_i
+
+                size_max: float = max(size_i, size_j)
+                v_star: int = -1
+                for v in g_i:
+                    if True:
+                        new_i: set[int] = set(g_i)
+                        new_i.remove(v)
+                        new_j: set[int] = set(g_j)
+                        new_j.add(v)
+
+                        new_sub_i, _, orig_to_sub_i = Graph.subgraph(g, new_i.union(set([start[i]])))
+                        new_sub_j, _, orig_to_sub_j = Graph.subgraph(g, new_j.union(set([start[j]])))
+
+                        new_size_i: float = wlp(new_sub_i, f(new_sub_i, 1, [orig_to_sub_i[start[i]]])[0])
+                        new_size_j: float = wlp(new_sub_j, f(new_sub_j, 1, [orig_to_sub_j[start[j]]])[0])
+
+                        if (curr_max := max(new_size_i, new_size_j)) < size_max:
+                            size_max = curr_max
+                            v_star = v
+
+                if v_star != -1:
+                    g_i.remove(v_star)
+                    g_j.add(v_star)
+
+                    partition[i] = set(g_i)
+                    partition[j] = set(g_j)
+
+                    check_transfer_pairs[idx] = True
+                    check_transfers[i] = True
+                    check_transfers[j] = True
+                else:
+                    check_transfer_pairs[idx] = False
+                    check_transfers[i] = False
+                    check_transfers[j] = False
+
+            # swaps
+            elif check_swap_pairs[idx] or check_swaps[i] or check_swaps[j]:
+                g_i, g_j = set(partition[i]), set(partition[j])
+
+                sub_i, _, orig_to_sub_i = Graph.subgraph(g, g_i.union(set([start[i]])))
+                sub_j, _, orig_to_sub_j = Graph.subgraph(g, g_j.union(set([start[j]])))
+
+                size_i: float = wlp(sub_i, f(sub_i, 1, [orig_to_sub_i[start[i]]])[0])
+                size_j: float = wlp(sub_j, f(sub_j, 1, [orig_to_sub_j[start[j]]])[0])
+
+                size_max = max(size_i, size_j)
+                v_i_star, v_j_star = -1, -1
+
+                for (v, v_prime) in product(g_i, g_j):
+                    if True:
+                        # swap v and v_prime
+                        new_i = set(g_i)
+                        new_i.remove(v)
+                        new_i.add(v_prime)
+                        new_j = set(g_j)
+                        new_j.remove(v_prime)
+                        new_j.add(v)
+
+                        new_sub_i, _, orig_to_sub_i = Graph.subgraph(g, new_i.union(set([start[i]])))
+                        new_sub_j, _, orig_to_sub_j = Graph.subgraph(g, new_j.union(set([start[j]])))
+
+                        new_size_i: float = wlp(new_sub_i, f(new_sub_i, 1, [orig_to_sub_i[start[i]]])[0])
+                        new_size_j: float = wlp(new_sub_j, f(new_sub_j, 1, [orig_to_sub_j[start[j]]])[0])
+
+                        if (curr_max := max(new_size_i, new_size_j)) < size_max:
+                            size_max = curr_max
+                            v_i_star, v_j_star = v, v_prime
+
+                if v_i_star != -1 and v_j_star != -1:
+                    g_i.remove(v_i_star)
+                    g_i.add(v_j_star)
+                    g_j.remove(v_j_star)
+                    g_j.add(v_i_star)
+
+                    partition[i] = set(g_i)
+                    partition[j] = set(g_j)
+
+                    check_swap_pairs[idx] = True
+                    check_swaps[i] = True
+                    check_swaps[j] = True
+                else:
+                    check_swap_pairs[idx] = False
+                    check_swaps[i] = False
+                    check_swaps[j] = False
+
+        checks = (
+            check_transfers.count(True)
+            + check_swaps.count(True)
+            + check_transfer_pairs.count(True)
+            + check_swap_pairs.count(True)
+        )
+
+    return partition
+
+
+def different_start_find_partition_with_heuristic(
+    g: Graph,
+    part: list[set[int]],
+    start: list[int], 
+    f: Callable[..., list[int]],
+    alpha: float,
+) -> list[set[int]]:
+    """
+    Run iterations of transfers and swaps and transfer outliers
+    until no improvements are possible
+
+    Parameters
+    ----------
+    g: Graph
+        Input graph
+        Assertions:
+            g must be a complete graph
+
+    part: list[set[int]]
+        Starting unordered assignment of nodes for each agent
+        Assertions:
+            Must be an agent partition
+
+    f: Callable[..., list[int]]
+        Passed heuristic
+
+    alpha: float
+        Threshold for detecting outliers
+        Assertions:
+            0 <= alpha <= 1
+
+    Returns
+    -------
+    list[set[int]]
+        Resulting unordered assignment of nodes after iterations
+
+    """
+
+    if Graph.is_complete(g) is False:
+        raise ValueError("Passed graph is not complete")
+
+    # if Graph.is_agent_partition(g, part) is False:
+    #     raise ValueError("Passed partition is invalid")
+
+    if not 0 <= alpha <= 1:
+        raise ValueError("Passed alpha threshold is out of range")
+
+    # creating a deep copy to be safe
+    # partition doesn't include agent current position
+    partition: list[set[int]] = [set(s[1:]) for s in part]
+    before: float = different_evaluate_partition_heuristic(g, partition, start, f)
+
+    # print("asdjhkfalfnjhkja")
+
+    improved: list[set[int]] = different_start_transfers_and_swaps_mwlp(g, partition, start, f)
+    after: float = different_evaluate_partition_heuristic(g, improved, start, f)
+
+    if improvements_decreased := (after < before):
+        partition = [set(subset) for subset in improved]
+
+    while improvements_decreased:
+        before = different_evaluate_partition_heuristic(g, partition, start, f)
+
+        improved = [set(subset) for subset in partition]
+        improved = different_start_transfer_outliers_mwlp(g, improved, start, f, alpha)
+        improved = different_start_transfers_and_swaps_mwlp(g, improved, start, f)
+        after = different_evaluate_partition_heuristic(g, improved, start, f)
+
+        if improvements_decreased := (after < before):
+            partition = [set(subset) for subset in improved]
+
+    return partition
+
+
+def solve_partition(
+    g: Graph, part: list[set[int]], start: list[int], f: Callable[..., list[int]] = different_start_greedy_assignment
+) -> list[list[int]]:
+    """
+    Determine optimal orders for each subset in the partition
+    according to a passed heuristic
+
+    Parameters
+    ----------
+    g: Graph
+        Input graph
+        Assertions:
+            g must be a complete graph
+
+    part: list[set[int]]
+        Starting unordered assignment of nodes for each agent
+        Assertions:
+            Must be an agent partition
+
+    f: Callable[..., list[int]]
+        Passed heuristic
+        Default: brute force mwlp
+
+    Returns
+    -------
+    list[list[int]]
+        Solved orders of each agent
+
+    """
+
+    if not Graph.is_complete(g):
+        raise ValueError("Passed graph is not complete")
+
+    # if Graph.is_agent_partition(g, part) is False:
+    #     raise ValueError("Passed partition is invalid")
+
+    # creating a deep copy to be safe
+    partition: list[set[int]] = [set(s) for s in part]
+
+    res: list[list[int]] = []
+    for idx, p in enumerate(partition):
+        sub_g, sto, orig_to_sub = Graph.subgraph(g, p.union(set([start[idx]])))
+        sub_res: list[int] = f(sub_g, 1, [orig_to_sub[start[idx]]])[0]
+        remapped_res: list[int] = [sto[node] for node in sub_res]
+        res.append(remapped_res)
+
+    return res
+
+def different_evaluate_partition_heuristic(
+    g: Graph, partition: list[set[int]], start: list[int], f: Callable[..., list[int]]
+) -> float:
+    """
+    Function to evaluate a given partition of agents using a heuristic
+    Returns partition with the largest weighted latency
+
+    Parameters
+    ----------
+    g: Graph
+        Input graph
+        Assertions:
+            g must be a complete graph
+
+    part: list[set[int]]
+        Unordered assignment of nodes for each agent
+        Assertions:
+            Must be an agent partition
+
+    f: Callable[..., list[int]]
+        Passed heuristic
+
+    Returns
+    -------
+    float:
+        max over all s in partition of wlp(g, f(s))
+
+    """
+
+    if Graph.is_complete(g) is False:
+        raise ValueError("Passed graph is not complete")
+
+    # if Graph.is_agent_partition(g, partition) is False:
+    #     raise ValueError("Passed partition is invalid")
+
+    curr_max = float("-inf")
+    for idx, subset in enumerate(partition):
+        sub_g, _, orig_to_sub = Graph.subgraph(g, subset.union(set([start[idx]])))
+        # print(f"f: {f(sub_g, 1, [orig_to_sub[start[idx]]])}")
+        curr_max = max(curr_max, wlp(sub_g, f(sub_g, 1, [orig_to_sub[start[idx]]])[0]))
+
+    return curr_max
