@@ -150,9 +150,9 @@ class MultiAgentSimulator:
         
 
         #init path costs for 3 paths 
-        vantage_path_cost = algos.path_length(self.known, path_to_vantage)
-        target_path_cost = algos.path_length(self.known, path_to_target)
-        vantage_to_target_path_cost = algos.path_length(self.known, vantage_to_target_path)
+        vantage_path_cost = algos.wlp(self.known, path_to_vantage)
+        target_path_cost = algos.wlp(self.known, path_to_target)
+        vantage_to_target_path_cost = algos.wlp(self.known, vantage_to_target_path)
         
         #init path costs without edge
         vantage_path_cost_without_edge = 0
@@ -176,10 +176,13 @@ class MultiAgentSimulator:
 
             self.known.delete_edge(path_to_vantage[node], path_to_vantage[node + 1])
             cost = 0
-            to_node_path_len = algos.path_length(self.known, algos.shortest_path(self.known, self.agent_pos[agent_num], path_to_vantage[node]))
-            node_to_target_path_len = algos.path_length(self.known, algos.shortest_path(self.known, path_to_vantage[node], vantage_node))
-            if to_node_path_len != -1 and node_to_target_path_len != -1:
-                cost = to_node_path_len + node_to_target_path_len
+            to_node_path = algos.shortest_path(self.known, self.agent_pos[agent_num], path_to_vantage[node])
+            node_to_vantage_path = algos.shortest_path(self.known, path_to_vantage[node], vantage_node)
+            # to_node_path_len = algos.path_length(self.known, algos.shortest_path(self.known, self.agent_pos[agent_num], path_to_vantage[node]))
+            # node_to_target_path_len = algos.path_length(self.known, algos.shortest_path(self.known, path_to_vantage[node], vantage_node))
+            cost = algos.wlp(self.known, to_node_path + node_to_vantage_path[1:])
+            # if to_node_path_len != -1 and node_to_target_path_len != -1:
+            #     cost = to_node_path_len + node_to_target_path_len
 
             vantage_path_cost_without_edge += cost - vantage_path_cost
             self.known.add_edge(path_to_vantage[node], path_to_vantage[node + 1], deleted_edge_weight)
@@ -189,11 +192,13 @@ class MultiAgentSimulator:
             deleted_edge_weight = self.known.edge_weight[path_to_target[node]][path_to_target[node + 1]]
             self.known.delete_edge(path_to_target[node], path_to_target[node + 1])
             cost = 0
-            to_node_path_len = algos.path_length(self.known, algos.shortest_path(self.known, self.agent_pos[agent_num], path_to_target[node]))
-            node_to_target_path_len = algos.path_length(self.known, algos.shortest_path(self.known, path_to_target[node], target_node))
-            if to_node_path_len != -1 and node_to_target_path_len != -1:
-                cost = to_node_path_len + node_to_target_path_len
-
+            to_node_path = algos.shortest_path(self.known, self.agent_pos[agent_num], path_to_target[node])
+            node_to_target_path = algos.shortest_path(self.known, path_to_target[node], target_node)
+            # to_node_path_len = algos.path_length(self.known, algos.shortest_path(self.known, self.agent_pos[agent_num], path_to_target[node]))
+            # node_to_target_path_len = algos.path_length(self.known, algos.shortest_path(self.known, path_to_target[node], target_node))
+            # if to_node_path_len != -1 and node_to_target_path_len != -1:
+            #     cost = to_node_path_len + node_to_target_path_len
+            cost = algos.wlp(self.known, to_node_path + node_to_target_path[1:])
             target_path_cost_without_edge += cost - target_path_cost
             self.known.add_edge(path_to_target[node], path_to_target[node + 1], deleted_edge_weight)
         for node in range(len(vantage_to_target_path) - 1):
@@ -201,13 +206,18 @@ class MultiAgentSimulator:
             deleted_edge_weight = self.known.edge_weight[vantage_to_target_path[node]][vantage_to_target_path[node + 1]]
             self.known.delete_edge(vantage_to_target_path[node], vantage_to_target_path[node + 1])
             if (vantage_to_target_path[node], vantage_to_target_path[node + 1]) not in self.visibility[vantage_node]:
-                to_node_path_len = algos.path_length(self.known, algos.shortest_path(self.known, vantage_node, vantage_to_target_path[node]))
-                node_to_target_path_len = algos.path_length(self.known, algos.shortest_path(self.known, vantage_to_target_path[node], target_node))
-                if to_node_path_len != -1 and node_to_target_path_len != -1:
-                    vantage_to_target_cost_without_edge += to_node_path_len + node_to_target_path_len - vantage_to_target_path_cost
+                to_node_path = algos.shortest_path(self.known, vantage_node, vantage_to_target_path[node])
+                node_to_target_path = algos.shortest_path(self.known, vantage_to_target_path[node], target_node)
+                # to_node_path_len = algos.path_length(self.known, algos.shortest_path(self.known, vantage_node, vantage_to_target_path[node]))
+                # node_to_target_path_len = algos.path_length(self.known, algos.shortest_path(self.known, vantage_to_target_path[node], target_node))
+                # if to_node_path_len != -1 and node_to_target_path_len != -1:
+                    # vantage_to_target_cost_without_edge += to_node_path_len + node_to_target_path_len - vantage_to_target_path_cost
+                cost = algos.wlp(self.known, to_node_path + node_to_target_path[1:])
+                vantage_to_target_cost_without_edge += cost
+
                 self.known.add_edge(vantage_to_target_path[node], vantage_to_target_path[node + 1], deleted_edge_weight)
             else:
-                new_path_len = algos.path_length(self.known, algos.shortest_path(self.known, vantage_node, target_node))
+                new_path_len = algos.wlp(self.known, algos.shortest_path(self.known, vantage_node, target_node))
                 if new_path_len != -1:
                     vantage_to_target_cost_without_edge += new_path_len - vantage_to_target_path_cost
                 self.known.add_edge(vantage_to_target_path[node], vantage_to_target_path[node + 1], deleted_edge_weight)
@@ -215,29 +225,34 @@ class MultiAgentSimulator:
         # calculate cost decrease for other agents
         # NOTE: need to add check that the other agent(s) will reach the edge after the current agent reaches the vantage node
         other_agent_gain = 0
-        for agent in range(self.num_agents):
-            if agent == agent_num:
-                continue
-            if vantage_node in self.agent_path[agent]:
-                other_agent_gain = float("-inf")
-            path = self.agent_path[agent]
-            for node in range(len(path) - 1):
-                path_len = algos.path_length(self.known, path)
-                if (path[node], path[node + 1]) not in self.discovered_edges and (path[node], path[node + 1]) in self.visibility[vantage_node]:
-                    deleted_edge_weight = self.known.edge_weight[path[node]][path[node + 1]]
-                    self.known.delete_edge(path[node], path[node + 1])
-                    new_path_len = algos.path_length(self.known, algos.shortest_path(self.known, self.agent_pos[agent], path[-1]))
+        # for agent in range(self.num_agents):
+        #     if agent == agent_num:
+        #         continue
+        #     if vantage_node in self.agent_path[agent]:
+        #         other_agent_gain = float("-inf")
+        #     path = self.agent_path[agent]
+        #     for node in range(len(path) - 1):
+        #         path_len = algos.path_length(self.known, path)
+        #         if (path[node], path[node + 1]) not in self.discovered_edges and (path[node], path[node + 1]) in self.visibility[vantage_node]:
+        #             deleted_edge_weight = self.known.edge_weight[path[node]][path[node + 1]]
+        #             self.known.delete_edge(path[node], path[node + 1])
+        #             new_path_len = algos.path_length(self.known, algos.shortest_path(self.known, self.agent_pos[agent], path[-1]))
 
-                    if new_path_len != -1:
-                        other_agent_gain += new_path_len - path_len
-                    self.known.add_edge(path[node], path[node + 1], deleted_edge_weight)
+        #             if new_path_len != -1:
+        #                 other_agent_gain += new_path_len - path_len
+        #             self.known.add_edge(path[node], path[node + 1], deleted_edge_weight)
 
 
         vantage_cost = self.cd * (vantage_path_cost_without_edge + vantage_to_target_cost_without_edge - other_agent_gain) + vantage_path_cost + vantage_to_target_path_cost
         target_cost = self.cd * (target_path_cost_without_edge) + target_path_cost
-        # if (vantage_node == 13):
-        # print(f"agent pos: {self.agent_pos[agent_num]} vantage_node: {vantage_node} target: {target_cost} vantage: {vantage_cost}")
+        # if (vantage_node == 8):
+        #     print(f"agent pos: {self.agent_pos[agent_num]} vantage_node: {vantage_node} target: {target_cost} vantage: {vantage_cost}")
+        #     print(f"go to vantage: {path_to_vantage + vantage_to_target_path[1:]}")
+        #     print(f"go to target: {path_to_target}")
         if (vantage_cost <= target_cost):
+            print(f"agent pos: {self.agent_pos[agent_num]} vantage_node: {vantage_node} target: {target_cost} vantage: {vantage_cost}")
+            print(f"go to vantage: {path_to_vantage + vantage_to_target_path[1:]}")
+            print(f"go to target: {path_to_target}")
             # print(f"go to vantage: {path_to_vantage + vantage_to_target_path[1:]}")
             return path_to_vantage + vantage_to_target_path[1:], vantage_cost
         else:
