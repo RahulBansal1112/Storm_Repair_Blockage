@@ -171,7 +171,8 @@ class MultiAgentSimulator:
 
         """
         for node in range(len(path_to_vantage) - 1):
- 
+            if  (path_to_vantage[node], path_to_vantage[node + 1]) in self.discovered_edges:
+                continue
             deleted_edge_weight = self.known.edge_weight[path_to_vantage[node]][path_to_vantage[node + 1]]
 
             self.known.delete_edge(path_to_vantage[node], path_to_vantage[node + 1])
@@ -185,7 +186,8 @@ class MultiAgentSimulator:
             self.known.add_edge(path_to_vantage[node], path_to_vantage[node + 1], deleted_edge_weight)
 
         for node in range(len(path_to_target) - 1):
-
+            if  (path_to_target[node], path_to_target[node + 1]) in self.discovered_edges:
+                continue
             deleted_edge_weight = self.known.edge_weight[path_to_target[node]][path_to_target[node + 1]]
             self.known.delete_edge(path_to_target[node], path_to_target[node + 1])
             cost = 0
@@ -197,7 +199,8 @@ class MultiAgentSimulator:
             target_path_cost_without_edge += cost - target_path_cost
             self.known.add_edge(path_to_target[node], path_to_target[node + 1], deleted_edge_weight)
         for node in range(len(vantage_to_target_path) - 1):
-
+            if  (vantage_to_target_path[node], vantage_to_target_path[node + 1]) in self.discovered_edges:
+                continue
             deleted_edge_weight = self.known.edge_weight[vantage_to_target_path[node]][vantage_to_target_path[node + 1]]
             self.known.delete_edge(vantage_to_target_path[node], vantage_to_target_path[node + 1])
             if (vantage_to_target_path[node], vantage_to_target_path[node + 1]) not in self.visibility[vantage_node]:
@@ -235,8 +238,10 @@ class MultiAgentSimulator:
 
         vantage_cost = self.cd * (vantage_path_cost_without_edge + vantage_to_target_cost_without_edge - other_agent_gain) + vantage_path_cost + vantage_to_target_path_cost
         target_cost = self.cd * (target_path_cost_without_edge) + target_path_cost
-        # if (vantage_node == 13):
-        # print(f"agent pos: {self.agent_pos[agent_num]} vantage_node: {vantage_node} target: {target_cost} vantage: {vantage_cost}")
+        if (vantage_node == 8):
+            print(f"agent pos: {self.agent_pos[agent_num]} vantage_node: {vantage_node} target: {target_cost} vantage: {vantage_cost}")
+            print(f"go to vantage: {path_to_vantage + vantage_to_target_path[1:]}")
+            print(f"go to target: {path_to_target}")
         if (vantage_cost <= target_cost):
             # print(f"go to vantage: {path_to_vantage + vantage_to_target_path[1:]}")
             return path_to_vantage + vantage_to_target_path[1:], vantage_cost
