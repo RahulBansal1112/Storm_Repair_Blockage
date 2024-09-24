@@ -49,14 +49,10 @@ class MultiAgentSimulator:
     
         
     def run_simu(self):
-        #TODO
-        ## use anakins method to create initial path!!!!
+
         while(len(self.targets) > 0):
-            # print(f"time: {self.time}")
-            # print(f"targets: {self.targets}")
             print(f"agent pos: {self.agent_pos}")
-            # print("curr pos:", end=" ")
-            # print(self.agent_pos)
+
             #update known graph
             self._update_known_graph()
 
@@ -73,10 +69,12 @@ class MultiAgentSimulator:
                     small_complete_known_graph.add_edge(start_node, end_node, shortest_known_paths[start_node][end_node])
             #complete known graph will be used to access shortest path between nodes, however when traversing, we will use the incomplete graph
 
+            # finds the initial path for the agents (not accounting for visibility)
             paths = algos.find_initial_path(small_complete_known_graph, self.num_agents, self.agent_pos, algos.different_start_greedy_assignment)
 
-            # NOTE: this is only the path from the agent's current position to its immediate next target
+            # finds the shortest path from an agent's current position to its (first) target node
             for agent in range(self.num_agents):
+                # NOTE: this is only the path from the agent's current position to its immediate next target
                 if len(paths[agent]) >= 2:
                     self.agent_path[agent] = algos.shortest_path(self.known, self.agent_pos[agent], paths[agent][1])
                 else:
@@ -85,6 +83,7 @@ class MultiAgentSimulator:
 
             # self.cd = self.broken_count/self.discovered_count
 
+            # updates the agent's path if it decides to go to a vantage node
             self.consider_vantage_nodes()
 
             #update position and time
@@ -211,13 +210,8 @@ class MultiAgentSimulator:
         target_cost = self.cd * (target_path_cost_without_edge) + target_path_cost
 
         if (vantage_cost <= target_cost):
-            # print(f"agent pos: {self.agent_pos[agent_num]} vantage_node: {vantage_node} target: {target_cost} vantage: {vantage_cost}")
-            # print(f"go to vantage: {path_to_vantage + vantage_to_target_path[1:]}")
-            # print(f"go to target: {path_to_target}")
-            # print(f"go to vantage: {path_to_vantage + vantage_to_target_path[1:]}")
             return path_to_vantage + vantage_to_target_path[1:], vantage_cost
         else:
-            # print(f"go to target: {path_to_target}")
             return path_to_target, target_cost
 
         
@@ -227,7 +221,6 @@ class MultiAgentSimulator:
         agents_at_node = []
         time_delta = min(self.known.edge_weight[self.agent_pos[agent]][self.agent_dest[agent]] - self.agent_progress[agent] for agent in range(self.num_agents))
         self.time += time_delta
-        # print(f"time: {self.time}")
         self.agent_progress = [progress + time_delta for progress in self.agent_progress]
         for agent in range(self.num_agents):
             if self.known.edge_weight[self.agent_pos[agent]][self.agent_dest[agent]] == self.agent_progress[agent]:
