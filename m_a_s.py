@@ -80,7 +80,7 @@ class MultiAgentSimulator:
             # print(f"partition (not including agent pos): {partition}")
             
             paths = algos.solve_partition(small_complete_known_graph, partition, self.agent_pos, algos.different_start_greedy_assignment)
-            print(f"paths: {paths}")
+            # print(f"paths: {paths}")
             # target_paths = algos.different_start_transfer_outliers_mwlp(small_complete_known_graph, target_paths, self.agent_pos, algos.greedy)
             # for agent, target_path in enumerate(target_paths):
             #     target_path.remove(self.agent_pos[agent])
@@ -96,10 +96,11 @@ class MultiAgentSimulator:
                     # NOTE: this goes to the first target because it has not been assigned one
                     self.agent_path[agent] = algos.shortest_path(self.known, self.agent_pos[agent], list(self.targets)[0])
 
-            self.cd = self.broken_count/self.discovered_count
+            # self.cd = self.broken_count/self.discovered_count
 
             for agent_num, target_path in enumerate(paths):
-
+                
+                # print(f"agent {agent_num} path: {self.agent_path[agent_num]}")
                 target_node = self.agent_path[agent_num][-1]
 
                 # if self.agent_dest[agent_num] != -1:
@@ -128,9 +129,11 @@ class MultiAgentSimulator:
                         self.agent_dest[agent_num] = new_dest[agent_num]
                 # print()
                 # print(f"agent {agent_num} path: {self.agent_pos[agent_num]} -> {self.agent_path[agent_num]}")
-            print(f"new agent paths: {self.agent_path}")
-            print(f"agent dest: {self.agent_dest}")
-            print()
+            # print(f"new agent paths: {self.agent_path}")
+            # print(f"agent dest: {self.agent_dest}")
+            # print(f"targets: {self.targets}")
+            # print(f"broken edge count: {len(self.broken_edges)}")
+            # print()
             #update position and time
             self._update_positions()
             # print(f"agent pos: {self.agent_pos}")
@@ -171,6 +174,9 @@ class MultiAgentSimulator:
 
         """
         for node in range(len(path_to_vantage) - 1):
+
+            if (path_to_vantage[node], path_to_vantage[node + 1]) in self.discovered_edges:
+                continue
  
             deleted_edge_weight = self.known.edge_weight[path_to_vantage[node]][path_to_vantage[node + 1]]
 
@@ -189,6 +195,9 @@ class MultiAgentSimulator:
 
         for node in range(len(path_to_target) - 1):
 
+            if (path_to_target[node], path_to_target[node + 1]) in self.discovered_edges:
+                continue
+
             deleted_edge_weight = self.known.edge_weight[path_to_target[node]][path_to_target[node + 1]]
             self.known.delete_edge(path_to_target[node], path_to_target[node + 1])
             cost = 0
@@ -202,6 +211,9 @@ class MultiAgentSimulator:
             target_path_cost_without_edge += cost - target_path_cost
             self.known.add_edge(path_to_target[node], path_to_target[node + 1], deleted_edge_weight)
         for node in range(len(vantage_to_target_path) - 1):
+
+            if (vantage_to_target_path[node], vantage_to_target_path[node + 1]) in self.discovered_edges:
+                continue
 
             deleted_edge_weight = self.known.edge_weight[vantage_to_target_path[node]][vantage_to_target_path[node + 1]]
             self.known.delete_edge(vantage_to_target_path[node], vantage_to_target_path[node + 1])
@@ -225,34 +237,31 @@ class MultiAgentSimulator:
         # calculate cost decrease for other agents
         # NOTE: need to add check that the other agent(s) will reach the edge after the current agent reaches the vantage node
         other_agent_gain = 0
-        # for agent in range(self.num_agents):
-        #     if agent == agent_num:
-        #         continue
-        #     if vantage_node in self.agent_path[agent]:
-        #         other_agent_gain = float("-inf")
-        #     path = self.agent_path[agent]
-        #     for node in range(len(path) - 1):
-        #         path_len = algos.path_length(self.known, path)
-        #         if (path[node], path[node + 1]) not in self.discovered_edges and (path[node], path[node + 1]) in self.visibility[vantage_node]:
-        #             deleted_edge_weight = self.known.edge_weight[path[node]][path[node + 1]]
-        #             self.known.delete_edge(path[node], path[node + 1])
-        #             new_path_len = algos.path_length(self.known, algos.shortest_path(self.known, self.agent_pos[agent], path[-1]))
+        for agent in range(self.num_agents):
+            if agent == agent_num:
+                continue
+            if vantage_node in self.agent_path[agent]:
+                other_agent_gain = float("-inf")
+            path = self.agent_path[agent]
+            for node in range(len(path) - 1):
+                path_len = algos.path_length(self.known, path)
+                if (path[node], path[node + 1]) not in self.discovered_edges and (path[node], path[node + 1]) in self.visibility[vantage_node]:
+                    deleted_edge_weight = self.known.edge_weight[path[node]][path[node + 1]]
+                    self.known.delete_edge(path[node], path[node + 1])
+                    new_path_len = algos.path_length(self.known, algos.shortest_path(self.known, self.agent_pos[agent], path[-1]))
 
-        #             if new_path_len != -1:
-        #                 other_agent_gain += new_path_len - path_len
-        #             self.known.add_edge(path[node], path[node + 1], deleted_edge_weight)
+                    if new_path_len != -1:
+                        other_agent_gain += new_path_len - path_len
+                    self.known.add_edge(path[node], path[node + 1], deleted_edge_weight)
 
 
         vantage_cost = self.cd * (vantage_path_cost_without_edge + vantage_to_target_cost_without_edge - other_agent_gain) + vantage_path_cost + vantage_to_target_path_cost
         target_cost = self.cd * (target_path_cost_without_edge) + target_path_cost
-        # if (vantage_node == 8):
-        #     print(f"agent pos: {self.agent_pos[agent_num]} vantage_node: {vantage_node} target: {target_cost} vantage: {vantage_cost}")
-        #     print(f"go to vantage: {path_to_vantage + vantage_to_target_path[1:]}")
-        #     print(f"go to target: {path_to_target}")
+
         if (vantage_cost <= target_cost):
-            print(f"agent pos: {self.agent_pos[agent_num]} vantage_node: {vantage_node} target: {target_cost} vantage: {vantage_cost}")
-            print(f"go to vantage: {path_to_vantage + vantage_to_target_path[1:]}")
-            print(f"go to target: {path_to_target}")
+            # print(f"agent pos: {self.agent_pos[agent_num]} vantage_node: {vantage_node} target: {target_cost} vantage: {vantage_cost}")
+            # print(f"go to vantage: {path_to_vantage + vantage_to_target_path[1:]}")
+            # print(f"go to target: {path_to_target}")
             # print(f"go to vantage: {path_to_vantage + vantage_to_target_path[1:]}")
             return path_to_vantage + vantage_to_target_path[1:], vantage_cost
         else:
