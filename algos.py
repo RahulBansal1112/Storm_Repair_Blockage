@@ -1930,3 +1930,39 @@ def different_evaluate_partition_heuristic(
         curr_max = max(curr_max, wlp(sub_g, f(sub_g, 1, [orig_to_sub[start[idx]]])[0]))
 
     return curr_max
+
+
+
+
+def find_initial_path(complete_known_graph: Graph, num_agents: int, agent_pos: list[int], f: Callable[..., list[int]] = different_start_greedy_assignment) -> list[list[int]]:
+    """
+    Use mwlp algorithm to find initial paths for the agents (without considering visibility)
+
+    Parameters
+    ----------
+    complete_known_graph: Graph
+        Input graph (edges that are not confirmed to be broken should be given as existing edges)
+        Assertions:
+            complete_known_graph must be a complete graph
+
+    num_agents: int
+        Number of agents
+    
+    agent_pos: list[int]
+        Current position of the agents
+
+    f: Callable[..., list[int]]
+        Passed heuristic for target assignment
+
+    Returns
+    -------
+    list[list[int]]:
+       List of paths for the agents
+
+    """
+     
+    target_paths = f(complete_known_graph, num_agents, agent_pos)
+    partition = different_start_find_partition_with_heuristic(complete_known_graph, target_paths, agent_pos, f, alpha=0.13)    
+    paths = solve_partition(complete_known_graph, partition, agent_pos, f)
+    
+    return paths
