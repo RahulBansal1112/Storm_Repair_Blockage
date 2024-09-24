@@ -112,7 +112,7 @@ class MultiAgentSimulator:
                 #find path based on equation
                 min_path_cost = float('inf')
 
-                new_dest = [-1] * self.num_agents
+                new_dest = -1
                 for vantage_node in range(self.known.num_nodes):
                     if (vantage_node == self.agent_pos[agent_num]):
                         continue
@@ -122,11 +122,8 @@ class MultiAgentSimulator:
                         self.agent_path[agent_num] = path
                         min_path_cost = path_cost
                         # print(f"min cost: {min_path_cost}")
-                        if self.agent_dest[agent_num] == -1:
-                            new_dest[agent_num] = self.agent_path[agent_num][1]
-                for agent_num in range(self.num_agents):
                     if self.agent_dest[agent_num] == -1:
-                        self.agent_dest[agent_num] = new_dest[agent_num]
+                        self.agent_dest[agent_num] = self.agent_path[agent_num][1]
                 # print()
                 # print(f"agent {agent_num} path: {self.agent_pos[agent_num]} -> {self.agent_path[agent_num]}")
             # print(f"new agent paths: {self.agent_path}")
