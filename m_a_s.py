@@ -62,26 +62,26 @@ class MultiAgentSimulator:
 
             #create complete graph from given info
             shortest_known_paths = algos.floyd_warshall(self.known)
-            small_complete_known_graph_dict: graph.graph_dict = {
+            complete_known_graph_dict: graph.graph_dict = {
                 "num_nodes": self.known.num_nodes,
                 "edges": [],
                 "node_weight": self.known.node_weight
             }
-            small_complete_known_graph = Graph.from_dict(small_complete_known_graph_dict)
+            complete_known_graph = Graph.from_dict(complete_known_graph_dict)
             for start_node in range (self.known.num_nodes):
                 for end_node in range (self.known.num_nodes):
-                    small_complete_known_graph.add_edge(start_node, end_node, shortest_known_paths[start_node][end_node])
+                    complete_known_graph.add_edge(start_node, end_node, shortest_known_paths[start_node][end_node])
             #complete known graph will be used to access shortest path between nodes, however when traversing, we will use the incomplete graph
 
-            target_paths = algos.different_start_greedy_assignment(small_complete_known_graph, self.num_agents, self.agent_pos)
+            target_paths = algos.different_start_greedy_assignment(complete_known_graph, self.num_agents, self.agent_pos)
             # print(f"agent pos: {self.agent_pos}")
             # print(f"target path: {target_paths}")
-            partition = algos.different_start_find_partition_with_heuristic(small_complete_known_graph, target_paths, self.agent_pos, algos.different_start_greedy_assignment, alpha=0.13)
+            partition = algos.different_start_find_partition_with_heuristic(complete_known_graph, target_paths, self.agent_pos, algos.different_start_greedy_assignment, alpha=0.13)
             # print(f"partition (not including agent pos): {partition}")
             
-            paths = algos.solve_partition(small_complete_known_graph, partition, self.agent_pos, algos.different_start_greedy_assignment)
+            paths = algos.solve_partition(complete_known_graph, partition, self.agent_pos, algos.different_start_greedy_assignment)
             # print(f"paths: {paths}")
-            # target_paths = algos.different_start_transfer_outliers_mwlp(small_complete_known_graph, target_paths, self.agent_pos, algos.greedy)
+            # target_paths = algos.different_start_transfer_outliers_mwlp(complete_known_graph, target_paths, self.agent_pos, algos.greedy)
             # for agent, target_path in enumerate(target_paths):
             #     target_path.remove(self.agent_pos[agent])
             # target_paths = [list(s) for s in target_paths]
