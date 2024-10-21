@@ -1962,7 +1962,9 @@ def find_initial_path(complete_known_graph: Graph, num_agents: int, agent_pos: l
     """
      
     target_paths = f(complete_known_graph, num_agents, agent_pos)
+    print(f"target paths: {target_paths}")
     partition = different_start_find_partition_with_heuristic(complete_known_graph, target_paths, agent_pos, f, alpha=0.13)    
     paths = solve_partition(complete_known_graph, partition, agent_pos, f)
     
     return paths
+
