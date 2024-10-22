@@ -51,7 +51,7 @@ class MultiAgentSimulator:
     def run_simu(self):
 
         while(len(self.targets) > 0):
-            print(f"agent pos: {self.agent_pos}")
+            # print(f"agent pos: {self.agent_pos}")
 
             #update known graph
             self._update_known_graph()
@@ -71,7 +71,7 @@ class MultiAgentSimulator:
 
             # finds the initial path for the agents (not accounting for visibility)
             paths = algos.find_initial_path(small_complete_known_graph, self.num_agents, self.agent_pos, algos.different_start_greedy_assignment)
-            print(f"initial paths: {paths}")
+            # print(f"initial paths: {paths}")
             # finds the shortest path from an agent's current position to its (first) target node
             for agent in range(self.num_agents):
                 # NOTE: this is only the path from the agent's current position to its immediate next target
@@ -84,10 +84,10 @@ class MultiAgentSimulator:
             # self.cd = self.broken_count/self.discovered_count
 
             # updates the agent's path if it decides to go to a vantage node
-            self.consider_vantage_nodes()
+            # self.consider_vantage_nodes()
 
-            print(f"agent paths: {self.agent_path}")
-            print(f"targets: {self.targets}")
+            # print(f"agent paths: {self.agent_path}")
+            # print(f"targets: {self.targets}")
 
             #update position and time
             self._update_positions()

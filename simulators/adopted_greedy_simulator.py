@@ -61,7 +61,7 @@ class MultiAgentSimulator:
         self._update_known_graph()
 
         while(len(self.targets) > 0):
-            print(f"agent pos: {self.agent_pos}")
+            # print(f"agent pos: {self.agent_pos}")
 
             self.prev_discovered_count = self.broken_count
             #update known graph
@@ -98,8 +98,8 @@ class MultiAgentSimulator:
             # finds the shortest path from an agent's current position to its target node
             self.agent_path[0] = algos.shortest_path(self.known, self.agent_pos[0], target)
             self.agent_dest[0] = self.agent_path[0][1]
-            print(f"agent path: {self.agent_path}")
-            print(f"agent dest: {self.agent_dest}")
+            # print(f"agent path: {self.agent_path}")
+            # print(f"agent dest: {self.agent_dest}")
 
             # self.cd = self.broken_count/self.discovered_count
 

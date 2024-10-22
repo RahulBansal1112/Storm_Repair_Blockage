@@ -29,6 +29,7 @@ class MultiAgentSimulator:
     discovered_edge_count = 0 #count of discovered edges
     broken_edge_count = 0 #count of broken edges
     cd = 0.20 #chance of edges being broken
+    time = 0    #time elapsed
 
 
     def __init__(self, known: graph.Graph, unknown: graph.Graph, visibility: List[List[Tuple]], num_agents: int, targets: List[int]):
@@ -90,7 +91,7 @@ class MultiAgentSimulator:
                     self.agent_path[agent] = algos.shortest_path(self.known, self.agent_pos[agent], list(self.targets)[0])
             
             #change the broken edge chance based off of how many broken edges we have discovered
-            self.cd = self.broken_edge_count/self.discovered_edge_count
+            self.cd = self.broken_edge_count/max(self.discovered_edge_count, 1)
 
             for agent_num, target_path in enumerate(paths):
                 target_node = self.agent_path[agent_num][-1]
@@ -121,9 +122,9 @@ class MultiAgentSimulator:
 
     def vantage_vs_target(self, agent_num: int, vantage_node: int, target_node: int) -> list:
 
-        path_to_vantage = algos.shortest_path(self.know, self.agent_pos[agent_num], vantage_node)
-        path_to_target = algos.shortest_path(self.know, self.agent_pos[agent_num], target_node)
-        vantage_to_target_path = algos.shortest_path(self.know, vantage_node, target_node)
+        path_to_vantage = algos.shortest_path(self.known, self.agent_pos[agent_num], vantage_node)
+        path_to_target = algos.shortest_path(self.known, self.agent_pos[agent_num], target_node)
+        vantage_to_target_path = algos.shortest_path(self.known, vantage_node, target_node)
 
 
         vantage_path_cost = algos.path_length(self.known, path_to_vantage)

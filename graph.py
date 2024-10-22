@@ -150,6 +150,16 @@ class Graph:
         return gd
 
     @staticmethod
+    def copy(g: Graph) -> Graph:
+        new_graph = Graph(g.num_nodes)
+        new_graph.adjacen_list = [node_adjacency.copy() for node_adjacency in g.adjacen_list]
+        new_graph.edge_weight = [edge_weight.copy() for edge_weight in g.edge_weight]
+        new_graph.node_weight = g.node_weight.copy()
+        
+        return new_graph
+
+
+    @staticmethod
     def from_file(loc: str) -> Graph:
         """
         Alternate constructor using graph_dict from json

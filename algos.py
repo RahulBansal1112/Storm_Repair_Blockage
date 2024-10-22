@@ -1818,8 +1818,6 @@ def different_start_find_partition_with_heuristic(
     partition: list[set[int]] = [set(s[1:]) for s in part]
     before: float = different_evaluate_partition_heuristic(g, partition, start, f)
 
-    # print("asdjhkfalfnjhkja")
-
     improved: list[set[int]] = different_start_transfers_and_swaps_mwlp(g, partition, start, f)
     after: float = different_evaluate_partition_heuristic(g, improved, start, f)
 
@@ -1962,7 +1960,7 @@ def find_initial_path(complete_known_graph: Graph, num_agents: int, agent_pos: l
     """
      
     target_paths = f(complete_known_graph, num_agents, agent_pos)
-    print(f"target paths: {target_paths}")
+    # print(f"target paths: {target_paths}")
     partition = different_start_find_partition_with_heuristic(complete_known_graph, target_paths, agent_pos, f, alpha=0.13)    
     paths = solve_partition(complete_known_graph, partition, agent_pos, f)
     

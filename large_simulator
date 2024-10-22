@@ -1,0 +1,130 @@
+
+import graphs_test
+from simulators.alternating_simulator import MultiAgentSimulator as AS
+from simulators.adopted_greedy_simulator import MultiAgentSimulator as ADS
+from REDO_multi_agent_simu import MultiAgentSimulator as MAS
+from graph import Graph, graph_dict
+from typing import List, Tuple
+import big_graph
+
+import networkx as nx
+import random
+import copy
+
+#
+#
+# This file is used to test the developed / benchmark algorithms against a large number
+# of randomly generated graphs
+#
+#
+
+# n: number of nodes
+# t: number of targets
+# max_weight: maximum weight of a target node
+# min_weight: minimum weight of a target node
+def random_targets(n: int, t: int, max_weight: int=10, min_weight: int=1):
+    assert(t < n) # node 0 cannot be a target
+    targets = random.sample(range(1, n), t)
+    node_weight = [0] * n
+    for target in targets:
+        node_weight[target] = random.randint(min_weight, max_weight)
+    return targets, node_weight
+
+def random_visibility(n: int, unknown_edges: List[Tuple[int, int]], max_prob=1.0) -> List[List[Tuple[int, int]]]:
+    # For each node, it gives it a probability
+    # which is used to determine the likelihood of an edge being visible or not
+    prob_edge_creation = [random.uniform(0, max_prob) for _ in range(n)]
+
+    visible = [[random.uniform(0, 1) < prob_edge_creation[i] for _ in range(n)] for i in range(n)]
+    visibility = [[] for _ in range(n)]
+    for i in range(n):
+        for j in range(n):
+            if visible[i][j] or (min(i, j), max(i, j)) in unknown_edges:
+                visibility[i].append((i, j))
+                visibility[i].append((j, i))
+    return visibility
+
+# n: number of nodes
+# p: probability of edge creation
+# t: number of targets
+def random_weighted_graph(n: int, p: float, t: int, max_len=10):
+    valid_graph = False
+    while not valid_graph:
+        print("generating graph...")
+        G = nx.gnp_random_graph(n, p)
+        valid_graph = nx.is_connected(G)
+        if not valid_graph:
+            continue
+
+        unknown_edge_list = []
+        known_edge_list = []
+        for i in range(n):
+            for j in range(i + 1, n):
+                if i == j:
+                    continue
+                weight = random.randint(1, max_len)
+                known_edge_list.append((i, j, weight))
+                known_edge_list.append((j, i, weight))
+                if (i, j) in G.edges:
+                    unknown_edge_list.append((i, j, weight))
+                    unknown_edge_list.append((j, i, weight))
+
+        visibility = random_visibility(n, G.edges)
+        targets, node_weight = random_targets(n, t)
+
+        known_graph_dict: graph_dict = {
+            "num_nodes": n,
+            "edges": known_edge_list,
+            "node_weight": node_weight
+        }
+
+        unknown_graph_dict: graph_dict = {
+            "num_nodes": n,
+            "edges": unknown_edge_list,
+            "node_weight": node_weight
+        }
+
+        known_graph = Graph.from_dict(known_graph_dict)
+        unknown_graph = Graph.from_dict(unknown_graph_dict)
+
+        return known_graph, unknown_graph, visibility, targets
+
+
+
+def main():
+
+    n = 20          # 10 nodes
+    p = 0.5         # chance of an edge existing
+    t = 3           # number of targets
+    a = 2           # number of agents
+    num_runs = 100  # number of graphs to test on
+
+    mas_total_time = 0
+    ads_total_time = 0
+
+    number_mas_best = 0
+
+    for run in range(1, num_runs + 1):
+        known_graph, unknown_graph, visibility, targets = random_weighted_graph(n, p, t)
+
+        # Our algorithm
+        mas_sim = MAS(Graph.copy(known_graph), Graph.copy(unknown_graph), copy.deepcopy(visibility), a, copy.deepcopy(targets))
+        # Adopted Greedy algorithm
+        ads_sim = ADS(Graph.copy(known_graph), Graph.copy(unknown_graph), copy.deepcopy(visibility), 1, copy.deepcopy(targets))
+
+        mas_sim.run_simu()
+        ads_sim.run_simu()
+
+        mas_total_time += mas_sim.time
+        ads_total_time += ads_sim.time
+
+        print(f"Run {run} total average")
+        print(f"MAS: {mas_total_time / run}")
+        print(f"ADS: {ads_total_time / run}")
+
+        number_mas_best += int(mas_sim.time == min(mas_sim.time, ads_sim.time))
+
+    print(f"Best time on {number_mas_best} runs")
+
+
+main()
