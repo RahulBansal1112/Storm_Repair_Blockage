@@ -31,7 +31,7 @@ class MultiAgentSimulator:
     algorithm: Callable[[graph.Graph, List[int]], List[int]]
     discovered_count = 0
     broken_count = 0
-    cd = 0.00
+    cd = 0.20
 
     def __init__(self, known: graph.Graph, unknown: graph.Graph, visibility: List[List[Tuple]], num_agents: int, targets: List[int]):
         self.known = known
@@ -83,10 +83,10 @@ class MultiAgentSimulator:
                     # NOTE: this goes to the first target because it has not been assigned one
                     self.agent_path[agent] = algos.shortest_path(self.known, self.agent_pos[agent], list(self.targets)[0])
 
-            # self.cd = self.broken_count/max(self.discovered_count, 1)
+            # self.cd = self.broken_count/self.discovered_count
 
             # updates the agent's path if it decides to go to a vantage node
-            self.consider_vantage_nodes()
+            # self.consider_vantage_nodes()
 
             # print(f"agent paths: {self.agent_path}")
             # print(f"targets: {self.targets}")
