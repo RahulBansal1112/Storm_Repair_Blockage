@@ -31,7 +31,7 @@ class MultiAgentSimulator:
     algorithm: Callable[[graph.Graph, List[int]], List[int]]
     discovered_count = 0
     broken_count = 0
-    cd = 0.00
+    cd = 0.20
 
     def __init__(self, known: graph.Graph, unknown: graph.Graph, visibility: List[List[Tuple]], num_agents: int, targets: List[int]):
         self.known = known
@@ -73,6 +73,7 @@ class MultiAgentSimulator:
 
             # finds the initial path for the agents (not accounting for visibility)
             paths = algos.find_initial_path(small_complete_known_graph, self.num_agents, self.agent_pos, algos.different_start_greedy_assignment)
+            # print(f"agent pos: {self.agent_pos}")
             # print(f"initial paths: {paths}")
             # finds the shortest path from an agent's current position to its (first) target node
             for agent in range(self.num_agents):
@@ -109,17 +110,14 @@ class MultiAgentSimulator:
         
 
         #init path costs for 3 paths 
-        vantage_path_cost = algos.wlp(self.known, path_to_vantage)
-        target_path_cost = algos.wlp(self.known, path_to_target)
-        vantage_to_target_path_cost = algos.wlp(self.known, vantage_to_target_path)
+        vantage_path_cost = algos.path_length(self.known, path_to_vantage)
+        target_path_cost = algos.path_length(self.known, path_to_target)
+        vantage_to_target_path_cost = algos.path_length(self.known, vantage_to_target_path)
         
         #init path costs without edge
         vantage_path_cost_without_edge = 0
         target_path_cost_without_edge = 0
         vantage_to_target_cost_without_edge = 0
-
-        # temporarily ignore vantage point to debug the code
-        # return path_to_target, 0
         
         """
         for each path:
@@ -142,7 +140,7 @@ class MultiAgentSimulator:
             node_to_vantage_path = algos.shortest_path(self.known, path_to_vantage[node], vantage_node)
             # to_node_path_len = algos.path_length(self.known, algos.shortest_path(self.known, self.agent_pos[agent_num], path_to_vantage[node]))
             # node_to_target_path_len = algos.path_length(self.known, algos.shortest_path(self.known, path_to_vantage[node], vantage_node))
-            cost = algos.wlp(self.known, to_node_path + node_to_vantage_path[1:])
+            cost = algos.path_length(self.known, to_node_path + node_to_vantage_path[1:])
             # if to_node_path_len != -1 and node_to_target_path_len != -1:
             #     cost = to_node_path_len + node_to_target_path_len
 
@@ -163,7 +161,7 @@ class MultiAgentSimulator:
             # node_to_target_path_len = algos.path_length(self.known, algos.shortest_path(self.known, path_to_target[node], target_node))
             # if to_node_path_len != -1 and node_to_target_path_len != -1:
             #     cost = to_node_path_len + node_to_target_path_len
-            cost = algos.wlp(self.known, to_node_path + node_to_target_path[1:])
+            cost = algos.path_length(self.known, to_node_path + node_to_target_path[1:])
             target_path_cost_without_edge += cost - target_path_cost
             self.known.add_edge(path_to_target[node], path_to_target[node + 1], deleted_edge_weight)
         for node in range(len(vantage_to_target_path) - 1):
@@ -180,12 +178,12 @@ class MultiAgentSimulator:
                 # node_to_target_path_len = algos.path_length(self.known, algos.shortest_path(self.known, vantage_to_target_path[node], target_node))
                 # if to_node_path_len != -1 and node_to_target_path_len != -1:
                     # vantage_to_target_cost_without_edge += to_node_path_len + node_to_target_path_len - vantage_to_target_path_cost
-                cost = algos.wlp(self.known, to_node_path + node_to_target_path[1:])
+                cost = algos.path_length(self.known, to_node_path + node_to_target_path[1:])
                 vantage_to_target_cost_without_edge += cost
 
                 self.known.add_edge(vantage_to_target_path[node], vantage_to_target_path[node + 1], deleted_edge_weight)
             else:
-                new_path_len = algos.wlp(self.known, algos.shortest_path(self.known, vantage_node, target_node))
+                new_path_len = algos.path_length(self.known, algos.shortest_path(self.known, vantage_node, target_node))
                 if new_path_len != -1:
                     vantage_to_target_cost_without_edge += new_path_len - vantage_to_target_path_cost
                 self.known.add_edge(vantage_to_target_path[node], vantage_to_target_path[node + 1], deleted_edge_weight)
@@ -224,20 +222,20 @@ class MultiAgentSimulator:
     def _update_positions(self) -> int:
         # update dest if an agent is at a node
         for agent in range(self.num_agents):
-            if self.agent_progress[agent] == 0:
-                self.agent_dest[agent] = self.agent_path[agent][1]
+                if self.agent_dest[agent] == -1:
+                    self.agent_dest[agent] = self.agent_path[agent][1]
 
         agents_at_node = []
-        if self.known.edge_weight[self.agent_pos[agent]][self.agent_dest[agent]] is None:
-            print("asdljkfhj")
-            utils.print_2d_list(self.unknown.adjacen_list)
-            print("----")
-            utils.print_2d_list(self.known.adjacen_list)
-            # utils.print_2d_list(self.visibility)
-            print(self.agent_pos[agent])
-            print(self.agent_dest[agent])
-        if self.agent_progress[agent] is None:
-            print("how???")
+        # if self.known.edge_weight[self.agent_pos[agent]][self.agent_dest[agent]] is None:
+        #     print("asdljkfhj")
+        #     utils.print_2d_list(self.unknown.adjacen_list)
+        #     print("----")
+        #     utils.print_2d_list(self.known.adjacen_list)
+        #     # utils.print_2d_list(self.visibility)
+        #     print(self.agent_pos[agent])
+        #     print(self.agent_dest[agent])
+        # if self.agent_progress[agent] is None:
+        #     print("how???")
         time_delta = min(self.known.edge_weight[self.agent_pos[agent]][self.agent_dest[agent]] - self.agent_progress[agent] for agent in range(self.num_agents))
         self.time += time_delta
         self.agent_progress = [progress + time_delta for progress in self.agent_progress]
@@ -289,14 +287,12 @@ class MultiAgentSimulator:
             min_path_cost = float('inf')
 
             for vantage_node in range(self.known.num_nodes):
-                if (vantage_node == self.agent_pos[agent_num]):
-                    continue
+                # if (vantage_node == self.agent_pos[agent_num]):
+                #     continue
                 path, path_cost = self.vantage_vs_target(agent_num, vantage_node, target_node)
                 if path_cost < min_path_cost:
                     self.agent_path[agent_num] = path
                     min_path_cost = path_cost
-                if self.agent_dest[agent_num] == -1:
-                    self.agent_dest[agent_num] = self.agent_path[agent_num][1]
 
     
     def _vantage_incentive(self, vantage_node: int) -> int:

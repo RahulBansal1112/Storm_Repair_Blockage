@@ -86,7 +86,7 @@ class MultiAgentSimulator:
             # self.cd = self.broken_count/self.discovered_count
 
             # updates the agent's path if it decides to go to a vantage node
-            # self.consider_vantage_nodes()
+            self.consider_vantage_nodes()
 
             # print(f"agent paths: {self.agent_path}")
             # print(f"targets: {self.targets}")
@@ -222,6 +222,7 @@ class MultiAgentSimulator:
         
 
     def _update_positions(self) -> int:
+        # print(f"num discovered: {self.discovered_count} out of {sum([len(self.known.adjacen_list[i]) for i in range(self.known.num_nodes)])}")
         # update dest if an agent is at a node
         for agent in range(self.num_agents):
             if self.agent_progress[agent] == 0:
@@ -230,6 +231,7 @@ class MultiAgentSimulator:
         agents_at_node = []
         if self.known.edge_weight[self.agent_pos[agent]][self.agent_dest[agent]] is None:
             print("asdljkfhj")
+            print(self.agent_path[agent])
             utils.print_2d_list(self.unknown.adjacen_list)
             print("----")
             utils.print_2d_list(self.known.adjacen_list)
